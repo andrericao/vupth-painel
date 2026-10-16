@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 
-import { Aviso, Botao, Campo, Cartao, Estado, Pilulas } from "../components/ui";
+import { Aviso, Botao, Campo, Cartao, Pilulas } from "../components/ui";
 import { ApiError } from "../lib/api";
 import {
   criarCampanha,
+  DIA_DA_SEMANA,
   DIAS,
   editarCampanha,
   formularioDe,
   formularioVazio,
   NOME_DIA,
   NOME_PUBLICO,
+  NOME_QUEM_CONTA,
   paraRequest,
   validar,
   type Beneficio,
@@ -19,6 +21,8 @@ import {
   type CampaignVisibility,
   type Formulario,
   type Modo,
+  type PayoutPeriod,
+  type ReferralScope,
 } from "../lib/campaigns";
 
 type Props = { campanha?: Campaign; hoje: string; onPronto: (c: Campaign) => void; onCancelar: () => void };
@@ -140,7 +144,7 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
             placeholder="0,00"
           />
         ) : null}
-        {ehLink ? <ParametrosBonificacao /> : null}
+        {ehLink ? <ParametrosBonificacao f={f} erros={erros} muda={muda} /> : null}
       </Cartao>
 
       <Cartao titulo="4. Quando e quantos">
@@ -177,18 +181,75 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
   );
 }
 
-/** DEC-73: os parâmetros da bonificação ficam em branco para o Andre preencher; o Backend ainda não os guarda. */
-function ParametrosBonificacao() {
+type Muda = <K extends keyof Formulario>(k: K) => (v: Formulario[K]) => void;
+
+/** DEC-73: a bonificação nasce em branco e o Andre preenche; o Backend guarda (BAK-9, 3fdcec1). */
+function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: ReturnType<typeof validar>; muda: Muda }) {
   return (
     <View testID="parametros-bonificacao" className="gap-3 rounded-xl border border-dashed border-vupth-border p-4">
-      <Estado tom="atencao" texto="Espera o Backend: BAK-9 · bonificacao" />
+      <Text className="text-sm font-semibold text-vupth-textPrimary">Bonificação</Text>
       <View className="flex-row flex-wrap gap-4">
-        {["% ao profissional", "% ao dono", "Quem conta", "Pagamento (semanal ou mensal)", "Dia do pagamento"].map((r) => (
-          <View key={r} className="min-w-[180px] flex-1">
-            <Campo rotulo={r} valor="" desabilitado />
-          </View>
-        ))}
+        <View className="min-w-[180px] flex-1">
+          <Campo
+            testID="pct-profissional"
+            rotulo="% ao profissional"
+            valor={f.pctProfissional}
+            onChange={muda("pctProfissional")}
+            erro={erros.pctProfissional}
+          />
+        </View>
+        <View className="min-w-[180px] flex-1">
+          <Campo
+            testID="pct-dono"
+            rotulo="% ao dono"
+            valor={f.pctDono}
+            onChange={muda("pctDono")}
+            erro={erros.pctDono}
+            dica="Os dois somam 100%."
+          />
+        </View>
       </View>
+      <Text className="text-sm font-medium text-vupth-textPrimary">Quem conta</Text>
+      <Pilulas<ReferralScope>
+        testID="quem-conta"
+        valor={f.quemConta || ([] as ReferralScope[])}
+        onChange={muda("quemConta")}
+        opcoes={(["ANY_PROFESSIONAL", "REFERRER_ESTABLISHMENT"] as const).map((v) => ({ valor: v, rotulo: NOME_QUEM_CONTA[v] }))}
+      />
+      {erros.quemConta ? <Text className="text-xs text-vupth-danger">{erros.quemConta}</Text> : null}
+      <Text className="text-sm font-medium text-vupth-textPrimary">Pagamento</Text>
+      <Pilulas<PayoutPeriod>
+        testID="pagamento"
+        valor={f.pagamento || ([] as PayoutPeriod[])}
+        onChange={(p) => {
+          muda("pagamento")(p);
+          muda("diaPagamento")("");
+        }}
+        opcoes={[
+          { valor: "WEEKLY", rotulo: "Semanal" },
+          { valor: "MONTHLY", rotulo: "Mensal" },
+        ]}
+      />
+      {erros.pagamento ? <Text className="text-xs text-vupth-danger">{erros.pagamento}</Text> : null}
+      {f.pagamento === "WEEKLY" ? (
+        <>
+          <Pilulas<string>
+            testID="dia-semana"
+            valor={f.diaPagamento}
+            onChange={muda("diaPagamento")}
+            opcoes={DIA_DA_SEMANA.map((d, i) => ({ valor: String(i + 1), rotulo: d }))}
+          />
+          {erros.diaPagamento ? <Text className="text-xs text-vupth-danger">{erros.diaPagamento}</Text> : null}
+        </>
+      ) : f.pagamento === "MONTHLY" ? (
+        <Campo
+          testID="dia-mes"
+          rotulo="Dia do mês (1 a 28)"
+          valor={f.diaPagamento}
+          onChange={muda("diaPagamento")}
+          erro={erros.diaPagamento}
+        />
+      ) : null}
     </View>
   );
 }

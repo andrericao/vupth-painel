@@ -2,6 +2,7 @@ import * as api from "../api";
 import {
   criarCampanha,
   descreverBeneficio,
+  descreverBonificacao,
   diaSP,
   editarCampanha,
   encerrarCampanha,
@@ -40,6 +41,9 @@ const valido = (x: Partial<Formulario> = {}): Formulario => ({
   fim: "2026-10-31",
   ...x,
 });
+
+const link = (x: Partial<Formulario> = {}): Formulario =>
+  valido({ modo: "link", valor: "5", pctProfissional: "60", pctDono: "40", quemConta: "ANY_PROFESSIONAL", pagamento: "WEEKLY", diaPagamento: "1", ...x });
 
 describe("chamadas", () => {
   const spy = jest.spyOn(api, "api").mockResolvedValue({} as never);
@@ -89,14 +93,76 @@ describe("validar", () => {
     expect(validar(valido({ valor: "" })).valor).toBe("Informe o valor.");
     expect(validar(valido({ valor: "0" })).valor).toBe("Informe o valor.");
     expect(validar(valido({ beneficio: "porcento", valor: "101" })).valor).toBe("Até 100%.");
-    expect(validar(valido({ modo: "link", beneficio: "taxa-zero", valor: "" })).valor).toBeDefined();
-    expect(validar(valido({ modo: "link", valor: "150" })).valor).toBeUndefined();
+    expect(validar(link({ beneficio: "taxa-zero", valor: "" })).valor).toBeDefined();
+    expect(validar(link({ valor: "150" })).valor).toBeUndefined();
     expect(validar(valido({ inicio: "16/10" })).inicio).toBeDefined();
     expect(validar(valido({ inicio: "16/10" })).fim).toBeUndefined();
     expect(validar(valido({ fim: "" })).fim).toBeDefined();
     expect(validar(valido({ fim: "2026-10-15" })).fim).toBe("O fim tem de ser depois do início.");
     expect(validar(valido({ limite: "0" })).limite).toBeDefined();
     expect(validar(valido({ limite: "1,5" })).limite).toBeDefined();
+  });
+});
+
+describe("bonificação (DEC-73)", () => {
+  it("link completo passa; cupom ignora os campos", () => {
+    expect(validar(link())).toEqual({});
+    expect(validar(link({ pagamento: "MONTHLY", diaPagamento: "28" }))).toEqual({});
+    expect(validar(link({ pctProfissional: "33,33", pctDono: "66,67" }))).toEqual({});
+    expect(validar(valido({ pctProfissional: "x" }))).toEqual({});
+  });
+
+  it("cada regra do Backend", () => {
+    const vazio = validar(link({ pctProfissional: "", pctDono: "", quemConta: "", pagamento: "", diaPagamento: "" }));
+    expect(Object.keys(vazio).sort()).toEqual(["pagamento", "pctDono", "pctProfissional", "quemConta"]);
+    expect(validar(link({ pctProfissional: "101" })).pctProfissional).toBe("De 0 a 100.");
+    expect(validar(link({ pctDono: "-1" })).pctDono).toBe("De 0 a 100.");
+    expect(validar(link({ pctDono: "50" })).pctDono).toBe("O profissional e o dono somam 100%.");
+    expect(validar(link({ diaPagamento: "8" })).diaPagamento).toBe("Escolha o dia da semana.");
+    expect(validar(link({ diaPagamento: "" })).diaPagamento).toBe("Escolha o dia da semana.");
+    expect(validar(link({ pagamento: "MONTHLY", diaPagamento: "29" })).diaPagamento).toBe("Um dia de 1 a 28.");
+    expect(validar(link({ pagamento: "MONTHLY", diaPagamento: "1,5" })).diaPagamento).toBeDefined();
+    expect(validar(link({ pagamento: "MONTHLY", diaPagamento: "0" })).diaPagamento).toBeDefined();
+  });
+
+  it("paraRequest manda os 5 campos só na indicação", () => {
+    expect(paraRequest(link())).toMatchObject({
+      type: "REFERRAL_BONUS",
+      referral_professional_percent: 60,
+      referral_owner_percent: 40,
+      referral_scope: "ANY_PROFESSIONAL",
+      payout_period: "WEEKLY",
+      payout_day: 1,
+    });
+    expect(paraRequest(link({ quemConta: "", pagamento: "", diaPagamento: "" }))).toMatchObject({
+      referral_scope: null,
+      payout_period: null,
+      payout_day: null,
+    });
+    expect(paraRequest(valido({ pctProfissional: "60", quemConta: "ANY_PROFESSIONAL", pagamento: "WEEKLY", diaPagamento: "1" }))).toMatchObject({
+      referral_professional_percent: null,
+      referral_scope: null,
+      payout_period: null,
+      payout_day: null,
+    });
+  });
+
+  it("formularioDe traz a bonificação de volta", () => {
+    expect(
+      formularioDe(
+        campanha({ type: "REFERRAL_BONUS", referral_professional_percent: 60.5, referral_owner_percent: 39.5, referral_scope: "REFERRER_ESTABLISHMENT", payout_period: "MONTHLY", payout_day: 5 }),
+      ),
+    ).toMatchObject({ pctProfissional: "60,5", pctDono: "39,5", quemConta: "REFERRER_ESTABLISHMENT", pagamento: "MONTHLY", diaPagamento: "5" });
+    expect(formularioDe(campanha())).toMatchObject({ pctProfissional: "", quemConta: "", pagamento: "", diaPagamento: "" });
+  });
+
+  it("descreverBonificacao", () => {
+    const base = campanha({ type: "REFERRAL_BONUS", referral_professional_percent: 60, referral_owner_percent: 40, referral_scope: "ANY_PROFESSIONAL", payout_period: "WEEKLY", payout_day: 3 });
+    expect(descreverBonificacao(base)).toBe("Profissional 60% · dono 40% · qualquer profissional · toda quarta");
+    expect(descreverBonificacao({ ...base, payout_period: "MONTHLY", payout_day: 5, referral_scope: undefined })).toBe("Profissional 60% · dono 40% · todo dia 5 do mês");
+    expect(descreverBonificacao({ ...base, payout_day: undefined })).toMatch(/toda segunda$/);
+    expect(descreverBonificacao(campanha())).toBeNull();
+    expect(descreverBonificacao(campanha({ type: "REFERRAL_BONUS" }))).toBeNull();
   });
 });
 
@@ -116,6 +182,11 @@ describe("paraRequest", () => {
       weekdays: "MONDAY,FRIDAY",
       max_redemptions: null,
       new_clients_only: false,
+      referral_professional_percent: null,
+      referral_owner_percent: null,
+      referral_scope: null,
+      payout_period: null,
+      payout_day: null,
     });
   });
 
@@ -128,7 +199,7 @@ describe("paraRequest", () => {
 
   it("taxa zero não manda valor; link vira REFERRAL_BONUS em reais", () => {
     expect(paraRequest(valido({ beneficio: "taxa-zero", valor: "9" }))).toMatchObject({ type: "FEE_WAIVER", value_amount: null, value_percent: null });
-    expect(paraRequest(valido({ modo: "link", beneficio: "porcento", valor: "5" }))).toMatchObject({ type: "REFERRAL_BONUS", value_amount: 5, value_percent: null });
+    expect(paraRequest(link({ beneficio: "porcento" }))).toMatchObject({ type: "REFERRAL_BONUS", value_amount: 5, value_percent: null });
   });
 });
 
@@ -148,6 +219,11 @@ describe("formularioDe", () => {
       dias: ["MONDAY", "TUESDAY"],
       limite: "50",
       soClientesNovos: false,
+      pctProfissional: "",
+      pctDono: "",
+      quemConta: "",
+      pagamento: "",
+      diaPagamento: "",
     });
   });
 

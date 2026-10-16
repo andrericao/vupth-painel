@@ -4,6 +4,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { Aviso, Barra, Botao, Cartao, Estado, Pilulas } from "../components/ui";
 import {
   descreverBeneficio,
+  descreverBonificacao,
   encerrarCampanha,
   listarCampanhas,
   NOME_PUBLICO,
@@ -139,6 +140,7 @@ function LinhaCampanha({ c, onEditar, onMudou, onErro }: LinhaProps) {
   const [ocupado, setOcupado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const fracao = ocupacao(c);
+  const bonificacao = descreverBonificacao(c);
 
   async function agir(acao: (id: string) => Promise<Campaign>) {
     setOcupado(true);
@@ -162,6 +164,7 @@ function LinhaCampanha({ c, onEditar, onMudou, onErro }: LinhaProps) {
         {descreverBeneficio(c)} · {c.visibility === "PRIVATE" ? `Privada · ${c.code}` : `Pública${c.code ? ` · ${c.code}` : ""}`} ·{" "}
         {NOME_PUBLICO[c.audience ?? "TODOS"]} · {dataCurta(c.starts_at)} a {dataCurta(c.ends_at)}
       </Text>
+      {bonificacao ? <Text className="text-sm text-vupth-textSecondary">{bonificacao}</Text> : null}
       <View className="gap-1">
         <Text className="text-sm text-vupth-textPrimary">
           {fracao == null ? `${c.redemptions} aceitaram · sem limite` : `${c.redemptions} de ${c.max_redemptions}`}

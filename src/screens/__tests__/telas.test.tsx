@@ -79,12 +79,14 @@ describe("Campanhas", () => {
       campanha(),
       campanha({ id: "c2", name: "Parceiro", visibility: "PRIVATE", code: "PARC", status: "PAUSED", max_redemptions: undefined, audience: "OWNER" }),
       campanha({ id: "c3", name: "Velha", status: "ENDED", code: "OLD" }),
+      campanha({ id: "c4", name: "Indique", type: "REFERRAL_BONUS", value_amount: 5, referral_professional_percent: 60, referral_owner_percent: 40, referral_scope: "ANY_PROFESSIONAL", payout_period: "WEEKLY", payout_day: 1 }),
     ]);
     render(<Campanhas hoje="2026-10-16" />);
     expect(screen.getByTestId("carregando")).toBeTruthy();
     expect(await screen.findByText("Lançamento")).toBeTruthy();
-    expect(screen.getByText("1 no ar · 3 no total")).toBeTruthy();
-    expect(screen.getAllByText("37 de 50")).toHaveLength(2);
+    expect(screen.getByText("2 no ar · 4 no total")).toBeTruthy();
+    expect(screen.getAllByText("37 de 50")).toHaveLength(3);
+    expect(screen.getByText("Profissional 60% · dono 40% · qualquer profissional · toda segunda")).toBeTruthy();
     expect(screen.getByText("37 aceitaram · sem limite")).toBeTruthy();
     expect(screen.queryByTestId("editar-c3")).toBeNull();
     fireEvent.press(screen.getByTestId("filtro-PAUSED"));
@@ -211,6 +213,20 @@ describe("CampanhaForm", () => {
     fireEvent.changeText(screen.getByTestId("inicio"), "2026-10-17");
     fireEvent.changeText(screen.getByTestId("fim"), "2026-10-31");
     fireEvent.changeText(screen.getByTestId("limite"), "50");
+    fireEvent.press(screen.getByTestId("salvar"));
+    expect(screen.getByText("Escolha quem conta.")).toBeTruthy();
+    expect(screen.getByText("Escolha semanal ou mensal.")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("pct-profissional"), "70");
+    fireEvent.changeText(screen.getByTestId("pct-dono"), "30");
+    fireEvent.press(screen.getByTestId("quem-conta-REFERRER_ESTABLISHMENT"));
+    fireEvent.press(screen.getByTestId("pagamento-WEEKLY"));
+    fireEvent.press(screen.getByTestId("salvar"));
+    expect(screen.getByText("Escolha o dia da semana.")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("dia-semana-5"));
+    fireEvent.press(screen.getByTestId("pagamento-MONTHLY"));
+    fireEvent.press(screen.getByTestId("salvar"));
+    expect(screen.getByText("Um dia de 1 a 28.")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("dia-mes"), "10");
     fireEvent.press(screen.getByTestId("publico-PROFESSIONAL"));
     fireEvent.press(screen.getByTestId("novos-sim"));
     fireEvent.press(screen.getByTestId("dias-SATURDAY"));
@@ -230,9 +246,14 @@ describe("CampanhaForm", () => {
         new_clients_only: true,
         description: "d",
         starts_at: "2026-10-17T00:00:00-03:00",
+        referral_professional_percent: 70,
+        referral_owner_percent: 30,
+        referral_scope: "REFERRER_ESTABLISHMENT",
+        payout_period: "MONTHLY",
+        payout_day: 10,
       }),
     );
-  });
+  }, 20000);
 
   it("os rótulos do valor seguem o benefício", () => {
     render(<CampanhaForm {...props} />);

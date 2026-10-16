@@ -5,6 +5,17 @@ export type CampaignType = "REFERRAL_BONUS" | "FEE_WAIVER" | "DISCOUNT";
 export type CampaignVisibility = "PUBLIC" | "PRIVATE";
 export type CampaignAudience = "CLIENT" | "PROFESSIONAL" | "OWNER";
 export type CampaignStatus = "SCHEDULED" | "RUNNING" | "PAUSED" | "ENDED";
+export type ReferralScope = "ANY_PROFESSIONAL" | "REFERRER_ESTABLISHMENT";
+export type PayoutPeriod = "WEEKLY" | "MONTHLY";
+
+/** Os parâmetros da bonificação por link (DEC-73, BAK-9 3fdcec1): só na REFERRAL_BONUS, e nela todos obrigatórios. */
+type Bonificacao<Vazio> = {
+  referral_professional_percent: number | Vazio;
+  referral_owner_percent: number | Vazio;
+  referral_scope: ReferralScope | Vazio;
+  payout_period: PayoutPeriod | Vazio;
+  payout_day: number | Vazio;
+};
 
 export type Campaign = {
   id: string;
@@ -24,7 +35,7 @@ export type Campaign = {
   new_clients_only: boolean;
   active: boolean;
   status: CampaignStatus;
-};
+} & Partial<Bonificacao<never>>;
 
 export type CampaignRequest = {
   name: string;
@@ -40,7 +51,7 @@ export type CampaignRequest = {
   weekdays: string | null;
   max_redemptions: number | null;
   new_clients_only: boolean;
-};
+} & Bonificacao<null>;
 
 export const listarCampanhas = () => api<Campaign[]>("/admin/campaigns");
 export const criarCampanha = (r: CampaignRequest) => api<Campaign>("/admin/campaigns", { method: "POST", body: r });
@@ -80,6 +91,11 @@ export type Formulario = {
   dias: string[];
   limite: string;
   soClientesNovos: boolean;
+  pctProfissional: string;
+  pctDono: string;
+  quemConta: ReferralScope | "";
+  pagamento: PayoutPeriod | "";
+  diaPagamento: string;
 };
 
 export function formularioVazio(hoje: string): Formulario {
@@ -97,6 +113,12 @@ export function formularioVazio(hoje: string): Formulario {
     dias: [],
     limite: "",
     soClientesNovos: false,
+    // DEC-73: a bonificação nasce em branco; o Andre preenche campanha a campanha.
+    pctProfissional: "",
+    pctDono: "",
+    quemConta: "",
+    pagamento: "",
+    diaPagamento: "",
   };
 }
 
@@ -120,7 +142,16 @@ export function formularioDe(c: Campaign): Formulario {
     dias: c.weekdays ? c.weekdays.split(",") : [],
     limite: c.max_redemptions != null ? String(c.max_redemptions) : "",
     soClientesNovos: c.new_clients_only,
+    pctProfissional: texto(c.referral_professional_percent),
+    pctDono: texto(c.referral_owner_percent),
+    quemConta: c.referral_scope ?? "",
+    pagamento: c.payout_period ?? "",
+    diaPagamento: texto(c.payout_day),
   };
+}
+
+function texto(n: number | null | undefined): string {
+  return n == null ? "" : String(n).replace(".", ",");
 }
 
 const DATA = /^\d{4}-\d{2}-\d{2}$/;
@@ -153,7 +184,25 @@ export function validar(f: Formulario): Partial<Record<keyof Formulario, string>
     const l = Number(f.limite.trim());
     if (!Number.isInteger(l) || l < 1) erros.limite = "Um número inteiro, 1 ou mais.";
   }
+  if (f.modo === "link") validarBonificacao(f, erros);
   return erros;
+}
+
+function validarBonificacao(f: Formulario, erros: Partial<Record<keyof Formulario, string>>) {
+  const prof = numero(f.pctProfissional);
+  const dono = numero(f.pctDono);
+  if (prof == null || prof < 0 || prof > 100) erros.pctProfissional = "De 0 a 100.";
+  if (dono == null || dono < 0 || dono > 100) erros.pctDono = "De 0 a 100.";
+  if (!erros.pctProfissional && !erros.pctDono && Math.round((prof! + dono!) * 100) !== 10000)
+    erros.pctDono = "O profissional e o dono somam 100%.";
+  if (!f.quemConta) erros.quemConta = "Escolha quem conta.";
+  if (!f.pagamento) erros.pagamento = "Escolha semanal ou mensal.";
+  else {
+    const dia = Number(f.diaPagamento);
+    const max = f.pagamento === "WEEKLY" ? 7 : 28;
+    if (!f.diaPagamento || !Number.isInteger(dia) || dia < 1 || dia > max)
+      erros.diaPagamento = f.pagamento === "WEEKLY" ? "Escolha o dia da semana." : "Um dia de 1 a 28.";
+  }
 }
 
 /** Do formulário para o corpo do POST/PUT. O dia vale de 00:00 do início até 23:59:59 do fim, em São Paulo. */
@@ -175,6 +224,11 @@ export function paraRequest(f: Formulario): CampaignRequest {
     weekdays: f.dias.length ? DIAS.filter((d) => f.dias.includes(d)).join(",") : null,
     max_redemptions: f.limite.trim() ? Number(f.limite.trim()) : null,
     new_clients_only: f.soClientesNovos,
+    referral_professional_percent: tipo === "REFERRAL_BONUS" ? numero(f.pctProfissional) : null,
+    referral_owner_percent: tipo === "REFERRAL_BONUS" ? numero(f.pctDono) : null,
+    referral_scope: tipo === "REFERRAL_BONUS" && f.quemConta ? f.quemConta : null,
+    payout_period: tipo === "REFERRAL_BONUS" && f.pagamento ? f.pagamento : null,
+    payout_day: tipo === "REFERRAL_BONUS" && f.diaPagamento ? Number(f.diaPagamento) : null,
   };
 }
 
@@ -207,4 +261,30 @@ export function descreverBeneficio(c: Campaign): string {
 export function ocupacao(c: Campaign): number | null {
   if (!c.max_redemptions) return null;
   return Math.min(1, c.redemptions / c.max_redemptions);
+}
+
+/** 1 = segunda … 7 = domingo (o dia da semanal no Backend). */
+export const DIA_DA_SEMANA = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+
+export const NOME_QUEM_CONTA: Record<ReferralScope, string> = {
+  ANY_PROFESSIONAL: "Qualquer profissional",
+  REFERRER_ESTABLISHMENT: "Só a loja de quem gerou o link",
+};
+
+/** "Profissional 60% · dono 40% · qualquer profissional · toda segunda"; null fora da campanha de link. */
+export function descreverBonificacao(c: Campaign): string | null {
+  if (c.type !== "REFERRAL_BONUS" || c.referral_professional_percent == null) return null;
+  const dia =
+    c.payout_period === "WEEKLY"
+      ? `toda ${DIA_DA_SEMANA[(c.payout_day ?? 1) - 1]}`
+      : `todo dia ${c.payout_day} do mês`;
+  const quem = c.referral_scope ? NOME_QUEM_CONTA[c.referral_scope].toLowerCase() : "";
+  return [
+    `Profissional ${texto(c.referral_professional_percent)}%`,
+    `dono ${texto(c.referral_owner_percent)}%`,
+    quem,
+    dia,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
