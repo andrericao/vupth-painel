@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "vupth painel",
+    "slug": "vupth-painel",
+    "version": "0.1.0",
+    "scheme": "vupth-painel",
+    "userInterfaceStyle": "light",
+    "plugins": ["expo-router"],
+    "web": { "bundler": "metro", "output": "single" },
+    "experiments": { "typedRoutes": false }
+  }
+}
