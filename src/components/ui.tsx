@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 
 // Peças do painel, no desenho do app: floresta sobre verde, pílulas, cartões de 20px.
@@ -43,27 +43,44 @@ type CampoProps = {
   dica?: string;
   placeholder?: string;
   senha?: boolean;
+  maxLength?: number;
   desabilitado?: boolean;
   testID?: string;
 };
 
-export function Campo({ rotulo, valor, onChange, erro, dica, placeholder, senha, desabilitado, testID }: CampoProps) {
+export function Campo({ rotulo, valor, onChange, erro, dica, placeholder, senha, maxLength, desabilitado, testID }: CampoProps) {
+  const [visivel, setVisivel] = useState(false);
+  const oculta = !!senha && !visivel;
   return (
     <View className="gap-1">
       <Text className="text-sm font-medium text-vupth-textPrimary">{rotulo}</Text>
-      <TextInput
-        testID={testID}
-        accessibilityLabel={rotulo}
-        value={valor}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor="#6B706B"
-        secureTextEntry={senha}
-        editable={!desabilitado}
-        className={`h-11 rounded-xl border px-3 text-vupth-textPrimary ${
-          erro ? "border-vupth-danger" : "border-vupth-border"
-        } ${desabilitado ? "bg-vupth-surface" : "bg-white"}`}
-      />
+      <View className="justify-center">
+        <TextInput
+          testID={testID}
+          accessibilityLabel={rotulo}
+          value={valor}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor="#6B706B"
+          secureTextEntry={oculta}
+          maxLength={maxLength}
+          editable={!desabilitado}
+          className={`h-11 rounded-xl border px-3 text-vupth-textPrimary ${senha ? "pr-20" : ""} ${
+            erro ? "border-vupth-danger" : "border-vupth-border"
+          } ${desabilitado ? "bg-vupth-surface" : "bg-white"}`}
+        />
+        {senha ? (
+          <Pressable
+            testID={testID ? `${testID}-ver` : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={visivel ? "Ocultar a senha" : "Mostrar a senha"}
+            onPress={() => setVisivel((v) => !v)}
+            className="absolute right-3"
+          >
+            <Text className="text-sm font-semibold text-vupth-forest">{visivel ? "Ocultar" : "Mostrar"}</Text>
+          </Pressable>
+        ) : null}
+      </View>
       {erro ? (
         <Text className="text-xs text-vupth-danger">{erro}</Text>
       ) : dica ? (

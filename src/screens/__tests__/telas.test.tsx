@@ -44,7 +44,8 @@ describe("Entrar", () => {
   it("pede e-mail e senha antes de chamar", () => {
     render(<Entrar onEntrou={jest.fn()} />);
     fireEvent.press(screen.getByTestId("entrar"));
-    expect(screen.getByText("Preencha o e-mail e a senha.")).toBeTruthy();
+    expect(screen.getByText("Digite o e-mail.")).toBeTruthy();
+    expect(screen.getByText("Digite a senha.")).toBeTruthy();
     expect(entrarMock).not.toHaveBeenCalled();
   });
 
@@ -70,6 +71,30 @@ describe("Entrar", () => {
     entrarMock.mockRejectedValueOnce(new ApiError(403, "NOT_ADMIN", "Esta conta não tem acesso ao painel."));
     fireEvent.press(screen.getByTestId("entrar"));
     expect(await screen.findByText("Esta conta não tem acesso ao painel.")).toBeTruthy();
+  });
+
+  it("erros de rede e de servidor acordando, sem apagar o digitado", async () => {
+    render(<Entrar onEntrou={jest.fn()} />);
+    fireEvent.changeText(screen.getByTestId("email"), "a@b.c");
+    fireEvent.changeText(screen.getByTestId("senha"), "x".repeat(54));
+    entrarMock.mockRejectedValueOnce(new ApiError(0, null, "x"));
+    fireEvent.press(screen.getByTestId("entrar"));
+    expect(await screen.findByText(/Sem conexão com o servidor/)).toBeTruthy();
+    entrarMock.mockRejectedValueOnce(new ApiError(503, null, "x"));
+    fireEvent.press(screen.getByTestId("entrar"));
+    expect(await screen.findByText(/servidor está acordando/)).toBeTruthy();
+    expect(screen.getByTestId("email").props.value).toBe("a@b.c");
+    expect(screen.getByTestId("senha").props.value).toHaveLength(54);
+    expect(screen.getByTestId("senha").props.maxLength).toBe(64);
+  });
+
+  it("olho mostra e oculta a senha", () => {
+    render(<Entrar onEntrou={jest.fn()} />);
+    expect(screen.getByTestId("senha").props.secureTextEntry).toBe(true);
+    fireEvent.press(screen.getByTestId("senha-ver"));
+    expect(screen.getByTestId("senha").props.secureTextEntry).toBe(false);
+    fireEvent.press(screen.getByTestId("senha-ver"));
+    expect(screen.getByTestId("senha").props.secureTextEntry).toBe(true);
   });
 });
 
