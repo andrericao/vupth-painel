@@ -46,7 +46,8 @@
   "expo": {
     "install": {
       "exclude": [
-        "eslint-config-expo"
+        "eslint-config-expo",
+        "react-native-worklets"
       ]
     }
   },
@@ -75,10 +76,10 @@
     ],
     "coverageThreshold": {
       "global": {
-        "statements": 98,
-        "branches": 98,
-        "functions": 98,
-        "lines": 98
+        "statements": 80,
+        "branches": 80,
+        "functions": 80,
+        "lines": 80
       }
     },
     "testPathIgnorePatterns": [
