@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import {
   Bell,
@@ -7,6 +7,8 @@ import {
   LogOut,
   Megaphone,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   ScrollText,
   ShieldCheck,
   Store,
@@ -31,6 +33,25 @@ export const MENU: ItemMenu[] = [
 
 export const LARGURA_CELULAR = 768;
 
+// O menu recolhido (só ícones) fica guardado no navegador; sem storage, começa aberto.
+const CHAVE_MENU = "vupth-painel:menu-recolhido";
+
+export function lerRecolhido(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(CHAVE_MENU) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function guardarRecolhido(v: boolean): void {
+  try {
+    globalThis.localStorage?.setItem(CHAVE_MENU, v ? "1" : "0");
+  } catch {
+    // sem storage (janela privada): vale só até recarregar
+  }
+}
+
 export function ativo(rota: string, atual: string): boolean {
   return rota === "/" ? atual === "/" : atual === rota || atual.startsWith(`${rota}/`);
 }
@@ -41,6 +62,11 @@ type Props = { atual: string; nome: string; onIr: (rota: string) => void; onSair
 export function Shell({ atual, nome, onIr, onSair, children }: Props) {
   const { width } = useWindowDimensions();
   const celular = width < LARGURA_CELULAR;
+  const [recolhido, setRecolhido] = useState(lerRecolhido);
+  const alternar = () => {
+    guardarRecolhido(!recolhido);
+    setRecolhido(!recolhido);
+  };
 
   if (celular) {
     return (
@@ -65,9 +91,19 @@ export function Shell({ atual, nome, onIr, onSair, children }: Props) {
 
   return (
     <View className="flex-1 flex-row bg-vupth-surface">
-      <View className="w-60 justify-between bg-vupth-forest p-4">
+      <View className={`justify-between bg-vupth-forest p-4 ${recolhido ? "w-16 items-center" : "w-60"}`}>
         <View className="gap-1">
-          <Text className="mb-6 px-3 text-xl font-bold text-vupth-green">vupth · painel</Text>
+          <View className={`mb-6 flex-row items-center ${recolhido ? "justify-center" : "justify-between px-3"}`}>
+            {recolhido ? null : <Text className="text-xl font-bold text-vupth-green">vupth · painel</Text>}
+            <Pressable
+              testID="recolher-menu"
+              accessibilityRole="button"
+              accessibilityLabel={recolhido ? "Expandir o menu" : "Recolher o menu"}
+              onPress={alternar}
+            >
+              {recolhido ? <PanelLeftOpen color="#9FE870" size={20} /> : <PanelLeftClose color="#9FE870" size={20} />}
+            </Pressable>
+          </View>
           {MENU.map((m) => {
             const marcado = ativo(m.rota, atual);
             return (
@@ -75,23 +111,34 @@ export function Shell({ atual, nome, onIr, onSair, children }: Props) {
                 key={m.rota}
                 testID={`menu-${m.rota}`}
                 accessibilityRole="link"
+                accessibilityLabel={m.nome}
                 accessibilityState={{ selected: marcado }}
                 onPress={() => onIr(m.rota)}
-                className={`flex-row items-center gap-3 rounded-full px-3 py-2 ${marcado ? "bg-vupth-green" : ""}`}
+                className={`flex-row items-center gap-3 rounded-full py-2 ${recolhido ? "justify-center px-2" : "px-3"} ${marcado ? "bg-vupth-green" : ""}`}
               >
                 <m.Icone color={marcado ? "#163300" : "#E2F6D5"} size={18} />
-                <Text className={marcado ? "font-semibold text-vupth-forest" : "text-vupth-greenTint"}>{m.nome}</Text>
+                {recolhido ? null : (
+                  <Text className={marcado ? "font-semibold text-vupth-forest" : "text-vupth-greenTint"}>{m.nome}</Text>
+                )}
               </Pressable>
             );
           })}
         </View>
-        <View className="gap-2 px-3">
-          <Text className="text-xs text-vupth-greenTint" numberOfLines={1}>
-            {nome}
-          </Text>
-          <Pressable testID="sair" accessibilityRole="button" onPress={onSair} className="flex-row items-center gap-2">
+        <View className={`gap-2 ${recolhido ? "items-center" : "px-3"}`}>
+          {recolhido ? null : (
+            <Text className="text-xs text-vupth-greenTint" numberOfLines={1}>
+              {nome}
+            </Text>
+          )}
+          <Pressable
+            testID="sair"
+            accessibilityRole="button"
+            accessibilityLabel="Sair"
+            onPress={onSair}
+            className="flex-row items-center gap-2"
+          >
             <LogOut color="#9FE870" size={16} />
-            <Text className="text-vupth-green">Sair</Text>
+            {recolhido ? null : <Text className="text-vupth-green">Sair</Text>}
           </Pressable>
         </View>
       </View>
