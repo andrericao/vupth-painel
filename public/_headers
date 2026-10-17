@@ -1,0 +1,33 @@
+# Cabecalhos de seguranca do build WEB do painel (S12, DEC-81; mesmo molde do vupth-partner).
+#
+# Formato lido por Cloudflare Pages: o Expo copia o conteudo de `public/` para a
+# saida do `expo export --platform web`.
+#
+# Por que importa AQUI: o token do admin mora no `sessionStorage` (src/lib/session.ts),
+# legivel por qualquer JavaScript da mesma origem. O vetor real e XSS; o CSP e a
+# defesa mais eficaz contra ele. O painel nao usa GPS, camera nem WebSocket.
+
+/*
+  # 'unsafe-inline' em style-src: o React Native Web injeta estilos inline.
+  # connect-src lista so os dois backends (staging e producao).
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://vupth-backend-ia.onrender.com https://vupth-backend-ia-production.up.railway.app; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  # Nao deixa embutir o painel em iframe de terceiro (clickjacking).
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  # O painel nao pede nenhum recurso do aparelho.
+  Permissions-Policy: geolocation=(), camera=(), microphone=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # Painel interno: fora dos buscadores.
+  X-Robots-Tag: noindex, nofollow
+
+# Cache: bundles com hash no nome guardam um ano; o index confere a cada visita.
+# Cache-Control so nestes blocos, nunca no /* (o Pages junta os valores).
+/_expo/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
