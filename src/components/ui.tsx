@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Eye, EyeOff } from "lucide-react-native";
 import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 
 // Peças do painel, no desenho do app: floresta sobre verde, pílulas, cartões de 20px.
@@ -65,7 +66,7 @@ export function Campo({ rotulo, valor, onChange, erro, dica, placeholder, senha,
           secureTextEntry={oculta}
           maxLength={maxLength}
           editable={!desabilitado}
-          className={`h-11 rounded-xl border px-3 text-vupth-textPrimary ${senha ? "pr-20" : ""} ${
+          className={`h-11 rounded-xl border px-3 text-vupth-textPrimary ${senha ? "pr-12" : ""} ${
             erro ? "border-vupth-danger" : "border-vupth-border"
           } ${desabilitado ? "bg-vupth-surface" : "bg-white"}`}
         />
@@ -73,11 +74,11 @@ export function Campo({ rotulo, valor, onChange, erro, dica, placeholder, senha,
           <Pressable
             testID={testID ? `${testID}-ver` : undefined}
             accessibilityRole="button"
-            accessibilityLabel={visivel ? "Ocultar a senha" : "Mostrar a senha"}
+            accessibilityLabel={visivel ? "Ocultar senha" : "Mostrar senha"}
             onPress={() => setVisivel((v) => !v)}
             className="absolute right-3"
           >
-            <Text className="text-sm font-semibold text-vupth-forest">{visivel ? "Ocultar" : "Mostrar"}</Text>
+            {visivel ? <EyeOff size={20} color="#163300" /> : <Eye size={20} color="#163300" />}
           </Pressable>
         ) : null}
       </View>

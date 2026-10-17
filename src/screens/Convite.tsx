@@ -16,7 +16,7 @@ export function Convite({ token, onEntrar }: { token?: string; onEntrar: () => v
 
   async function enviar() {
     setErro(null);
-    const falta = !senha ? "Digite a senha." : senha.length < 6 ? "De 6 a 64 caracteres." : senha !== repete ? "As senhas são diferentes." : undefined;
+    const falta = !senha ? "Digite a senha." : senha.length < 6 ? "De 6 a 64 caracteres" : senha !== repete ? "As senhas são diferentes." : undefined;
     setErroSenha(falta);
     if (falta || !token) return;
     setEnviando(true);
@@ -47,7 +47,7 @@ export function Convite({ token, onEntrar }: { token?: string; onEntrar: () => v
         ) : (
           <>
             <Text className="text-vupth-textSecondary">Você foi convidado. Defina a sua senha.</Text>
-            <Campo testID="nova-senha" rotulo="Senha" valor={senha} onChange={setSenha} erro={erroSenha} dica="De 6 a 64 caracteres." maxLength={64} senha />
+            <Campo testID="nova-senha" rotulo="Senha" valor={senha} onChange={setSenha} erro={erroSenha} dica="De 6 a 64 caracteres" maxLength={64} senha />
             <Campo testID="repete-senha" rotulo="Repita a senha" valor={repete} onChange={setRepete} maxLength={64} senha />
             {erro ? <Aviso texto={erro} /> : null}
             <Botao testID="definir" titulo="Definir senha" onPress={enviar} carregando={enviando} />

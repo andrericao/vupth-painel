@@ -102,7 +102,9 @@ describe("Entrar", () => {
   it("olho mostra e oculta a senha", () => {
     render(<Entrar onEntrou={jest.fn()} />);
     expect(screen.getByTestId("senha").props.secureTextEntry).toBe(true);
+    expect(screen.getByLabelText("Mostrar senha")).toBeTruthy();
     fireEvent.press(screen.getByTestId("senha-ver"));
+    expect(screen.getByLabelText("Ocultar senha")).toBeTruthy();
     expect(screen.getByTestId("senha").props.secureTextEntry).toBe(false);
     fireEvent.press(screen.getByTestId("senha-ver"));
     expect(screen.getByTestId("senha").props.secureTextEntry).toBe(true);

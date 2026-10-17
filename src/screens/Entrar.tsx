@@ -59,7 +59,7 @@ export function Entrar({ onEntrou }: { onEntrou: () => void }) {
               valor={senha}
               onChange={setSenha}
               erro={erroSenha}
-              dica="De 6 a 64 caracteres."
+              dica="De 6 a 64 caracteres"
               maxLength={64}
               senha
             />
