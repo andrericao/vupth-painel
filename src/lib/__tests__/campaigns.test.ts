@@ -1,6 +1,7 @@
 import * as api from "../api";
 import {
   criarCampanha,
+  avisoBeneficio,
   descreverBeneficio,
   descreverBonificacao,
   diaSP,
@@ -239,11 +240,16 @@ describe("formularioDe", () => {
 });
 
 describe("leitura", () => {
+  it("avisoBeneficio diz dinheiro no link e desconto no cupom", () => {
+    expect(avisoBeneficio("link")).toMatch(/dinheiro/);
+    expect(avisoBeneficio("cupom")).toMatch(/desconto/);
+  });
+
   it("descreverBeneficio", () => {
     expect(descreverBeneficio(campanha())).toBe("Desconto de R$ 10,00");
     expect(descreverBeneficio(campanha({ value_amount: undefined, value_percent: 7.5 }))).toBe("Desconto de 7,5%");
     expect(descreverBeneficio(campanha({ type: "FEE_WAIVER" }))).toBe("Taxa zero");
-    expect(descreverBeneficio(campanha({ type: "REFERRAL_BONUS", value_amount: 5 }))).toBe("Link · R$ 5,00 por corte");
+    expect(descreverBeneficio(campanha({ type: "REFERRAL_BONUS", value_amount: 5 }))).toBe("Dinheiro · R$ 5,00 por corte");
     expect(descreverBeneficio(campanha({ value_amount: undefined }))).toBe("Desconto de R$ 0,00");
   });
 

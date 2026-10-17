@@ -4,6 +4,7 @@ import { Text, View } from "react-native";
 import { Aviso, Botao, Campo, Cartao, Pilulas } from "../components/ui";
 import { ApiError } from "../lib/api";
 import {
+  avisoBeneficio,
   criarCampanha,
   DIA_DA_SEMANA,
   DIAS,
@@ -122,6 +123,9 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
       </Cartao>
 
       <Cartao titulo="3. O benefício">
+        <Text testID="aviso-beneficio" className="text-sm text-vupth-textSecondary">
+          {avisoBeneficio(f.modo)}
+        </Text>
         {ehLink ? null : (
           <Pilulas<Beneficio>
             testID="beneficio"

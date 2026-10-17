@@ -7,6 +7,8 @@ export type CampaignAudience = "CLIENT" | "PROFESSIONAL" | "OWNER";
 export type CampaignStatus = "SCHEDULED" | "RUNNING" | "PAUSED" | "ENDED";
 export type ReferralScope = "ANY_PROFESSIONAL" | "REFERRER_ESTABLISHMENT";
 export type PayoutPeriod = "WEEKLY" | "MONTHLY";
+/** DEC-76, BAK-13: o Backend deriva do tipo — CASH na indicação (dinheiro), DISCOUNT na isenção e no desconto. */
+export type CampaignBenefit = "CASH" | "DISCOUNT";
 
 /** Os parâmetros da bonificação por link (DEC-73, BAK-9 3fdcec1): só na REFERRAL_BONUS, e nela todos obrigatórios. */
 type Bonificacao<Vazio> = {
@@ -35,6 +37,7 @@ export type Campaign = {
   new_clients_only: boolean;
   active: boolean;
   status: CampaignStatus;
+  benefit?: CampaignBenefit;
 } & Partial<Bonificacao<never>>;
 
 export type CampaignRequest = {
@@ -248,13 +251,20 @@ export const NOME_PUBLICO: Record<CampaignAudience | "TODOS", string> = {
   OWNER: "Donos",
 };
 
+/** O que o formulário diz do benefício: a indicação paga em dinheiro; cupom é desconto (DEC-76). */
+export function avisoBeneficio(modo: Modo): string {
+  return modo === "link"
+    ? "Benefício em dinheiro: quem indica recebe em reais, no período e no dia abaixo."
+    : "Benefício em desconto: quem usa o cupom paga menos no corte.";
+}
+
 export function descreverBeneficio(c: Campaign): string {
   if (c.type === "FEE_WAIVER") return "Taxa zero";
   const valor =
     c.value_percent != null
       ? `${String(c.value_percent).replace(".", ",")}%`
       : `R$ ${(c.value_amount ?? 0).toFixed(2).replace(".", ",")}`;
-  return c.type === "REFERRAL_BONUS" ? `Link · ${valor} por corte` : `Desconto de ${valor}`;
+  return c.type === "REFERRAL_BONUS" ? `Dinheiro · ${valor} por corte` : `Desconto de ${valor}`;
 }
 
 /** 0 a 1: quanto do limite já foi usado; null quando não há limite. */

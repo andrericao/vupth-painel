@@ -225,7 +225,9 @@ describe("CampanhaForm", () => {
   it("link mostra os parâmetros da bonificação (DEC-73) e manda REFERRAL_BONUS", async () => {
     m.criarCampanha.mockResolvedValue(campanha());
     render(<CampanhaForm {...props} />);
+    expect(screen.getByTestId("aviso-beneficio")).toHaveTextContent(/desconto/);
     fireEvent.press(screen.getByTestId("modo-link"));
+    expect(screen.getByTestId("aviso-beneficio")).toHaveTextContent(/dinheiro/);
     expect(screen.getByTestId("parametros-bonificacao")).toBeTruthy();
     expect(screen.queryByTestId("beneficio")).toBeNull();
     expect(screen.getByText("Valor por corte (R$)")).toBeTruthy();
