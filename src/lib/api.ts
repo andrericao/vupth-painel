@@ -45,8 +45,8 @@ export async function api<T>(caminho: string, { method = "GET", body, auth = tru
   const dados = texto ? safeJson(texto) : null;
 
   if (!resposta.ok) {
-    if (resposta.status === 401 && auth) limparSessao();
     const code = typeof dados?.code === "string" ? dados.code : null;
+    if (resposta.status === 401 && auth && code !== "ADMIN_TOTP_INVALID") limparSessao();
     const msg =
       (typeof dados?.message === "string" && dados.message) ||
       MENSAGENS[resposta.status] ||

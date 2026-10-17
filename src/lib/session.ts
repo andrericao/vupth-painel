@@ -9,6 +9,8 @@ export type Sessao = {
   nome: string;
   email: string;
   expiraEm: number;
+  /** Entrou com a senha, mas falta o segundo fator: o token ainda não abre as telas. */
+  pendente?: boolean;
 };
 
 function storage(): Storage | null {
@@ -39,6 +41,23 @@ export function lerSessao(agora = Date.now()): Sessao | null {
     limparSessao();
     return null;
   }
+}
+
+/** Troca o token pelo do painel (15 min, sem refresh); `liberar` abre as telas só depois do fator. */
+export function trocarToken(accessToken: string, expiresIn: number, liberar: boolean, agora = Date.now()): void {
+  const atual = storage()?.getItem(CHAVE);
+  if (!atual) return;
+  const s = { ...(JSON.parse(atual) as Sessao), accessToken, expiraEm: agora + expiresIn * 1000 };
+  if (liberar) delete s.pendente;
+  storage()?.setItem(CHAVE, JSON.stringify(s));
+}
+
+export function liberarSessao(): void {
+  const atual = storage()?.getItem(CHAVE);
+  if (!atual) return;
+  const s = JSON.parse(atual) as Sessao;
+  delete s.pendente;
+  storage()?.setItem(CHAVE, JSON.stringify(s));
 }
 
 export function limparSessao(): void {

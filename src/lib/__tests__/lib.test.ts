@@ -1,8 +1,17 @@
 import { api, ApiError } from "../api";
-import { ehAdmin, entrar, sair } from "../auth";
+import {
+  concluirEntrada,
+  confirmarConfiguracao,
+  ehAdmin,
+  entrar,
+  etapaDoSegundoFator,
+  iniciarConfiguracao,
+  sair,
+  verificarCodigo,
+} from "../auth";
 import { apiBaseUrl, API_URLS, SESSAO_MS } from "../config";
 import { dataCurta, dataHora, dinheiro, hojeSP } from "../format";
-import { lerSessao, limparSessao, salvarSessao } from "../session";
+import { lerSessao, liberarSessao, limparSessao, salvarSessao, trocarToken } from "../session";
 
 function resposta(status: number, corpo?: unknown) {
   return {
@@ -172,6 +181,60 @@ describe("auth", () => {
     await expect(entrar("a@b.c", "x")).rejects.toMatchObject({ code: "NOT_ADMIN" });
     fetchMock.mockResolvedValue(resposta(200));
     await expect(entrar("a@b.c", "x")).rejects.toMatchObject({ code: "NOT_ADMIN" });
+    expect(lerSessao()).toBeNull();
+  });
+});
+
+describe("segundo fator", () => {
+  const admin = { user: { user_roles: [{ role_type: "ADMIN", is_active: true }] }, tokens: { access_token: "A", refresh_token: "R" } };
+  async function logado() {
+    fetchMock.mockResolvedValueOnce(resposta(200, admin));
+    await entrar("a@b.c", "x");
+  }
+
+  it("a sessão da senha nasce pendente; status verified libera", async () => {
+    await logado();
+    expect(lerSessao()?.pendente).toBe(true);
+    fetchMock.mockResolvedValueOnce(resposta(200, { totp_enabled: false, verified: true }));
+    await expect(etapaDoSegundoFator()).resolves.toBe("pronto");
+    expect(lerSessao()?.pendente).toBeUndefined();
+  });
+
+  it("status decide entre cadastrar e pedir o código", async () => {
+    await logado();
+    fetchMock.mockResolvedValueOnce(resposta(200, { totp_enabled: false, verified: false }));
+    await expect(etapaDoSegundoFator()).resolves.toBe("configurar");
+    fetchMock.mockResolvedValueOnce(resposta(200, { totp_enabled: true, verified: false }));
+    await expect(etapaDoSegundoFator()).resolves.toBe("codigo");
+    expect(lerSessao()?.pendente).toBe(true);
+  });
+
+  it("setup, confirmação (token do painel + códigos) e conclusão", async () => {
+    await logado();
+    fetchMock.mockResolvedValueOnce(resposta(200, { secret: "S", otpauth_uri: "otpauth://x" }));
+    await expect(iniciarConfiguracao()).resolves.toEqual({ secret: "S", otpauth_uri: "otpauth://x" });
+    fetchMock.mockResolvedValueOnce(resposta(200, { access_token: "P", expires_in: 900, recovery_codes: ["a", "b"] }));
+    await expect(confirmarConfiguracao(" 123456 ")).resolves.toEqual(["a", "b"]);
+    expect(JSON.parse(fetchMock.mock.calls.at(-1)[1].body)).toEqual({ code: "123456" });
+    expect(lerSessao()).toMatchObject({ accessToken: "P", pendente: true });
+    concluirEntrada();
+    expect(lerSessao()?.pendente).toBeUndefined();
+  });
+
+  it("verificar troca o token e libera; código errado não derruba a sessão", async () => {
+    await logado();
+    fetchMock.mockResolvedValueOnce(resposta(401, { code: "ADMIN_TOTP_INVALID", message: "errado" }));
+    await expect(verificarCodigo("000000")).rejects.toMatchObject({ code: "ADMIN_TOTP_INVALID" });
+    expect(lerSessao()?.accessToken).toBe("A");
+    fetchMock.mockResolvedValueOnce(resposta(200, { access_token: "P", expires_in: 900 }));
+    await verificarCodigo("ABCDE-FGHJK");
+    expect(lerSessao()).toMatchObject({ accessToken: "P" });
+    expect(lerSessao()?.pendente).toBeUndefined();
+  });
+
+  it("sem sessão, trocar o token e liberar não fazem nada", () => {
+    trocarToken("P", 900, true);
+    liberarSessao();
     expect(lerSessao()).toBeNull();
   });
 });

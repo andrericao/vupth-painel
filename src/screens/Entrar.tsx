@@ -3,9 +3,10 @@ import { Text, View } from "react-native";
 
 import { Aviso, Botao, Campo } from "../components/ui";
 import { ApiError } from "../lib/api";
-import { entrar } from "../lib/auth";
+import { entrar, etapaDoSegundoFator } from "../lib/auth";
+import { SegundoFator } from "./SegundoFator";
 
-/** E-mail, senha e o código de 6 dígitos (o código entra quando o Backend tiver a segunda etapa). */
+/** E-mail e senha; depois o segundo fator (código do Google Authenticator), quando o Backend o exige. */
 export function Entrar({ onEntrou }: { onEntrou: () => void }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -13,6 +14,7 @@ export function Entrar({ onEntrou }: { onEntrou: () => void }) {
   const [erroSenha, setErroSenha] = useState<string>();
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [etapa, setEtapa] = useState<"configurar" | "codigo">();
 
   async function enviar() {
     const faltaEmail = !email.trim() ? "Digite o e-mail." : undefined;
@@ -24,7 +26,9 @@ export function Entrar({ onEntrou }: { onEntrou: () => void }) {
     setEnviando(true);
     try {
       await entrar(email, senha);
-      onEntrou();
+      const proxima = await etapaDoSegundoFator();
+      if (proxima === "pronto") onEntrou();
+      else setEtapa(proxima);
     } catch (e) {
       const status = e instanceof ApiError ? e.status : 0;
       if (status === 401) setErroSenha("E-mail ou senha errados.");
@@ -44,23 +48,25 @@ export function Entrar({ onEntrou }: { onEntrou: () => void }) {
           <Text className="text-2xl font-bold text-vupth-textPrimary">vupth · painel</Text>
           <Text className="text-vupth-textSecondary">Só para a conta de administrador.</Text>
         </View>
-        <Campo testID="email" rotulo="E-mail" valor={email} onChange={setEmail} erro={erroEmail} placeholder="voce@exemplo.com" />
-        <Campo testID="senha" rotulo="Senha" valor={senha}
-          onChange={setSenha}
-          erro={erroSenha}
-          dica="De 6 a 64 caracteres."
-          maxLength={64}
-          senha
-        />
-        <Campo
-          testID="codigo"
-          rotulo="Código do Google Authenticator"
-          valor=""
-          desabilitado
-          dica="Chega com a segunda etapa do Backend."
-        />
-        {erro ? <Aviso texto={erro} /> : null}
-        <Botao testID="entrar" titulo="Entrar" onPress={enviar} carregando={enviando} />
+        {etapa ? (
+          <SegundoFator etapa={etapa} onPronto={onEntrou} />
+        ) : (
+          <>
+            <Campo testID="email" rotulo="E-mail" valor={email} onChange={setEmail} erro={erroEmail} placeholder="voce@exemplo.com" />
+            <Campo
+              testID="senha"
+              rotulo="Senha"
+              valor={senha}
+              onChange={setSenha}
+              erro={erroSenha}
+              dica="De 6 a 64 caracteres."
+              maxLength={64}
+              senha
+            />
+            {erro ? <Aviso texto={erro} /> : null}
+            <Botao testID="entrar" titulo="Entrar" onPress={enviar} carregando={enviando} />
+          </>
+        )}
       </View>
     </View>
   );

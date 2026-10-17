@@ -1,14 +1,22 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 
 import { ApiError } from "../../lib/api";
-import { entrar } from "../../lib/auth";
+import * as auth from "../../lib/auth";
+import { SegundoFator, erroDoCodigo } from "../SegundoFator";
 import * as C from "../../lib/campaigns";
 import type { Campaign } from "../../lib/campaigns";
 import { CampanhaForm } from "../CampanhaForm";
 import { Campanhas } from "../Campanhas";
 import { Entrar } from "../Entrar";
 
-jest.mock("../../lib/auth", () => ({ entrar: jest.fn() }));
+jest.mock("../../lib/auth", () => ({
+  entrar: jest.fn(),
+  etapaDoSegundoFator: jest.fn(),
+  iniciarConfiguracao: jest.fn(),
+  confirmarConfiguracao: jest.fn(),
+  verificarCodigo: jest.fn(),
+  concluirEntrada: jest.fn(),
+}));
 jest.mock("../../lib/campaigns", () => ({
   ...jest.requireActual("../../lib/campaigns"),
   listarCampanhas: jest.fn(),
@@ -20,7 +28,8 @@ jest.mock("../../lib/campaigns", () => ({
 }));
 
 const m = C as jest.Mocked<typeof C>;
-const entrarMock = entrar as jest.Mock;
+const entrarMock = auth.entrar as jest.Mock;
+const a = auth as unknown as Record<string, jest.Mock>;
 
 const campanha = (x: Partial<Campaign> = {}): Campaign => ({
   id: "c1",
@@ -38,7 +47,10 @@ const campanha = (x: Partial<Campaign> = {}): Campaign => ({
   ...x,
 });
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  a.etapaDoSegundoFator.mockResolvedValue("pronto");
+});
 
 describe("Entrar", () => {
   it("pede e-mail e senha antes de chamar", () => {
@@ -55,7 +67,6 @@ describe("Entrar", () => {
     render(<Entrar onEntrou={onEntrou} />);
     fireEvent.changeText(screen.getByTestId("email"), "a@b.c");
     fireEvent.changeText(screen.getByTestId("senha"), "x");
-    fireEvent.changeText(screen.getByTestId("codigo"), "123");
     fireEvent.press(screen.getByTestId("entrar"));
     await waitFor(() => expect(onEntrou).toHaveBeenCalled());
     expect(entrarMock).toHaveBeenCalledWith("a@b.c", "x");
@@ -95,6 +106,69 @@ describe("Entrar", () => {
     expect(screen.getByTestId("senha").props.secureTextEntry).toBe(false);
     fireEvent.press(screen.getByTestId("senha-ver"));
     expect(screen.getByTestId("senha").props.secureTextEntry).toBe(true);
+  });
+});
+
+describe("Segundo fator", () => {
+  it("depois da senha, pede o código e entra", async () => {
+    entrarMock.mockResolvedValue({});
+    a.etapaDoSegundoFator.mockResolvedValue("codigo");
+    a.verificarCodigo.mockResolvedValue(undefined);
+    const onEntrou = jest.fn();
+    render(<Entrar onEntrou={onEntrou} />);
+    fireEvent.changeText(screen.getByTestId("email"), "a@b.c");
+    fireEvent.changeText(screen.getByTestId("senha"), "x");
+    fireEvent.press(screen.getByTestId("entrar"));
+    expect(await screen.findByText(/Abra o Google Authenticator/)).toBeTruthy();
+    fireEvent.press(screen.getByTestId("verificar"));
+    expect(screen.getByText("Digite o código.")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("codigo"), "123456");
+    fireEvent.press(screen.getByTestId("verificar"));
+    await waitFor(() => expect(onEntrou).toHaveBeenCalled());
+    expect(a.verificarCodigo).toHaveBeenCalledWith("123456");
+  });
+
+  it("código errado, travado e sem rede aparecem no campo", async () => {
+    a.verificarCodigo.mockRejectedValueOnce(new ApiError(401, "ADMIN_TOTP_INVALID", "x"));
+    render(<SegundoFator etapa="codigo" onPronto={jest.fn()} />);
+    fireEvent.changeText(screen.getByTestId("codigo"), "000000");
+    fireEvent.press(screen.getByTestId("verificar"));
+    expect(await screen.findByText(/Código errado/)).toBeTruthy();
+    expect(screen.getByTestId("codigo").props.value).toBe("000000");
+    a.verificarCodigo.mockRejectedValueOnce(new ApiError(429, "ADMIN_TOTP_LOCKED", "x"));
+    fireEvent.press(screen.getByTestId("verificar"));
+    expect(await screen.findByText(/Espere 15 minutos/)).toBeTruthy();
+    expect(erroDoCodigo(new ApiError(0, null, "x"))).toMatch(/Sem conexão/);
+    expect(erroDoCodigo(new ApiError(500, null, "falhou"))).toBe("falhou");
+    expect(erroDoCodigo(new Error("outro"))).toBe("outro");
+  });
+
+  it("primeira vez: mostra a chave, confirma e mostra os códigos de recuperação uma vez", async () => {
+    a.iniciarConfiguracao.mockResolvedValue({ secret: "ABCD EFGH", otpauth_uri: "otpauth://x" });
+    a.confirmarConfiguracao.mockResolvedValue(["AAAAA-BBBBB", "CCCCC-DDDDD"]);
+    const onPronto = jest.fn();
+    render(<SegundoFator etapa="configurar" onPronto={onPronto} />);
+    expect(screen.getByTestId("carregando-chave")).toBeTruthy();
+    expect(await screen.findByText("ABCD EFGH")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("confirmar"));
+    expect(screen.getByText("Digite o código do aplicativo.")).toBeTruthy();
+    a.confirmarConfiguracao.mockRejectedValueOnce(new ApiError(401, "ADMIN_TOTP_INVALID", "x"));
+    fireEvent.changeText(screen.getByTestId("codigo"), "111111");
+    fireEvent.press(screen.getByTestId("confirmar"));
+    expect(await screen.findByText(/Código errado/)).toBeTruthy();
+    fireEvent.press(screen.getByTestId("confirmar"));
+    expect(await screen.findByText("AAAAA-BBBBB")).toBeTruthy();
+    expect(onPronto).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("guardei"));
+    expect(a.concluirEntrada).toHaveBeenCalled();
+    expect(onPronto).toHaveBeenCalled();
+  });
+
+  it("falha ao gerar a chave vira aviso e bloqueia o Confirmar", async () => {
+    a.iniciarConfiguracao.mockRejectedValue(new ApiError(409, "ADMIN_TOTP_ALREADY_ENABLED", "Já ativado."));
+    render(<SegundoFator etapa="configurar" onPronto={jest.fn()} />);
+    expect(await screen.findByText("Já ativado.")).toBeTruthy();
+    expect(screen.getByTestId("confirmar").props.accessibilityState.disabled).toBe(true);
   });
 });
 

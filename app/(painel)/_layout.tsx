@@ -7,7 +7,7 @@ import { lerSessao } from "../../src/lib/session";
 export default function PainelLayout() {
   const atual = usePathname();
   const sessao = lerSessao();
-  if (!sessao) return <Redirect href="/entrar" />;
+  if (!sessao || sessao.pendente) return <Redirect href="/entrar" />;
   return (
     <Shell
       atual={atual}
