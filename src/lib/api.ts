@@ -46,7 +46,8 @@ export async function api<T>(caminho: string, { method = "GET", body, auth = tru
 
   if (!resposta.ok) {
     const code = typeof dados?.code === "string" ? dados.code : null;
-    if (resposta.status === 401 && auth && code !== "ADMIN_TOTP_INVALID") limparSessao();
+    if (resposta.status === 401 && auth && code !== "ADMIN_TOTP_INVALID" && code !== "ADMIN_TOTP_REQUIRED")
+      limparSessao();
     const msg =
       (typeof dados?.message === "string" && dados.message) ||
       MENSAGENS[resposta.status] ||

@@ -8,6 +8,7 @@ import {
   Megaphone,
   MessageSquare,
   ScrollText,
+  ShieldCheck,
   Store,
   Users,
   type LucideIcon,
@@ -25,6 +26,7 @@ export const MENU: ItemMenu[] = [
   { rota: "/suporte", nome: "Suporte", Icone: MessageSquare },
   { rota: "/alertas", nome: "Alertas", Icone: Bell },
   { rota: "/auditoria", nome: "Auditoria", Icone: ScrollText },
+  { rota: "/acessos", nome: "Acessos", Icone: ShieldCheck },
 ];
 
 export const LARGURA_CELULAR = 768;

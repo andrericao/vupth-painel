@@ -91,7 +91,7 @@ describe("Shell", () => {
     expect(ativo("/campanhas", "/campanhasx")).toBe(false);
   });
 
-  it("no computador, menu lateral com as 8 telas e Sair", () => {
+  it("no computador, menu lateral com todas as telas e Sair", () => {
     largura(1280);
     const onIr = jest.fn();
     const onSair = jest.fn();

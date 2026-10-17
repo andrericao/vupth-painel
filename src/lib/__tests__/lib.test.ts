@@ -200,13 +200,43 @@ describe("segundo fator", () => {
     expect(lerSessao()?.pendente).toBeUndefined();
   });
 
-  it("status decide entre cadastrar e pedir o código", async () => {
+  it("fator desligado: o status vem sem verified, mas a rota do painel abre", async () => {
     await logado();
-    fetchMock.mockResolvedValueOnce(resposta(200, { totp_enabled: false, verified: false }));
+    fetchMock
+      .mockResolvedValueOnce(resposta(200, { totp_enabled: false, verified: false }))
+      .mockResolvedValueOnce(resposta(200, []));
+    await expect(etapaDoSegundoFator()).resolves.toBe("pronto");
+    expect(lerSessao()?.pendente).toBeUndefined();
+  });
+
+  it("sem a permissão da rota (403) o token vale: abre", async () => {
+    await logado();
+    fetchMock
+      .mockResolvedValueOnce(resposta(200, { totp_enabled: false, verified: false }))
+      .mockResolvedValueOnce(resposta(403, { code: "ADMIN_PERMISSION_DENIED" }));
+    await expect(etapaDoSegundoFator()).resolves.toBe("pronto");
+  });
+
+  it("401 ADMIN_TOTP_REQUIRED decide entre cadastrar e pedir o código, sem derrubar a sessão", async () => {
+    await logado();
+    const exige = resposta(401, { code: "ADMIN_TOTP_REQUIRED" });
+    fetchMock
+      .mockResolvedValueOnce(resposta(200, { totp_enabled: false, verified: false }))
+      .mockResolvedValueOnce(exige);
     await expect(etapaDoSegundoFator()).resolves.toBe("configurar");
-    fetchMock.mockResolvedValueOnce(resposta(200, { totp_enabled: true, verified: false }));
+    fetchMock
+      .mockResolvedValueOnce(resposta(200, { totp_enabled: true, verified: false }))
+      .mockResolvedValueOnce(exige);
     await expect(etapaDoSegundoFator()).resolves.toBe("codigo");
     expect(lerSessao()?.pendente).toBe(true);
+  });
+
+  it("outro erro na sondagem sobe", async () => {
+    await logado();
+    fetchMock
+      .mockResolvedValueOnce(resposta(200, { totp_enabled: false, verified: false }))
+      .mockResolvedValueOnce(resposta(500, {}));
+    await expect(etapaDoSegundoFator()).rejects.toMatchObject({ status: 500 });
   });
 
   it("setup, confirmação (token do painel + códigos) e conclusão", async () => {

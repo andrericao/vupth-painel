@@ -45,14 +45,27 @@ export type Etapa = "pronto" | "configurar" | "codigo";
 type TokenDoPainel = { access_token: string; expires_in: number };
 export type Configuracao = { secret: string; otpauth_uri: string };
 
-/** Depois da senha: já aberto (fator desligado), cadastrar o Authenticator ou pedir o código. */
+/**
+ * Depois da senha: já aberto, cadastrar o Authenticator ou pedir o código.
+ * `verified` só é true com o código já dado; com o fator desligado no Backend (staging) ele vem false,
+ * então uma rota do painel decide: 401 ADMIN_TOTP_REQUIRED pede o fator, qualquer outra resposta abre.
+ */
 export async function etapaDoSegundoFator(): Promise<Etapa> {
   const st = await api<{ totp_enabled: boolean; verified: boolean }>("/admin/auth/status");
-  if (st.verified) {
-    liberarSessao();
-    return "pronto";
+  if (st.verified) return abrir();
+  try {
+    await api("/admin/campaigns");
+    return abrir();
+  } catch (e) {
+    if (e instanceof ApiError && e.code === "ADMIN_TOTP_REQUIRED") return st.totp_enabled ? "codigo" : "configurar";
+    if (e instanceof ApiError && e.status === 403) return abrir();
+    throw e;
   }
-  return st.totp_enabled ? "codigo" : "configurar";
+}
+
+function abrir(): Etapa {
+  liberarSessao();
+  return "pronto";
 }
 
 export const iniciarConfiguracao = () => api<Configuracao>("/admin/auth/totp/setup", { method: "POST" });
