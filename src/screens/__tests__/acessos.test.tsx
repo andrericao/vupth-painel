@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 
 import * as A from "../../lib/acessos";
 import { ApiError } from "../../lib/api";
@@ -16,6 +16,8 @@ jest.mock("../../lib/acessos", () => ({
   aceitarConvite: jest.fn(),
 }));
 const m = A as jest.Mocked<typeof A>;
+/** Deixa a fila de promessas e a renderização assentarem antes de olhar a árvore. */
+const esperar = () => act(() => new Promise<void>((r) => setTimeout(r, 50)));
 
 const dono: A.UsuarioDoPainel = { id: "d", name: "André", email: "a@b.c", owner: true, permissions: [], totp_enabled: true };
 const ana: A.UsuarioDoPainel = { id: "u1", name: "Ana", email: "ana@b.c", owner: false, permissions: ["USERS"], totp_enabled: false };
@@ -88,7 +90,9 @@ describe("Acessos", () => {
     expect(await screen.findByText("não deu")).toBeTruthy();
     m.cancelarConvite.mockResolvedValueOnce(null);
     fireEvent.press(screen.getByTestId("cancelar-i1"));
-    await waitFor(() => expect(screen.queryByText("novo@b.c")).toBeNull());
+    await waitFor(() => expect(m.cancelarConvite).toHaveBeenCalledTimes(2));
+    await esperar();
+    expect(screen.queryByText("novo@b.c")).toBeNull();
   });
 
   it("muda as permissões de alguém", async () => {
@@ -124,7 +128,9 @@ describe("Acessos", () => {
     fireEvent.press(screen.getByTestId("revogar-u1"));
     expect(m.revogarAcesso).not.toHaveBeenCalled();
     fireEvent.press(screen.getByTestId("confirmar-u1"));
-    await waitFor(() => expect(screen.queryByText("Ana")).toBeNull());
+    await waitFor(() => expect(m.revogarAcesso).toHaveBeenCalled());
+    await esperar();
+    expect(screen.queryByText("Ana")).toBeNull();
     expect(m.revogarAcesso).toHaveBeenCalledWith("u1");
   });
 
