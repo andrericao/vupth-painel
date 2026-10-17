@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
 import { Aviso, Botao, Campo } from "../components/ui";
 import { ApiError } from "../lib/api";
@@ -118,11 +119,16 @@ function Configurar({ onPronto }: { onPronto: () => void }) {
   return (
     <>
       <Text className="text-vupth-textSecondary">
-        Primeiro acesso: cadastre o Google Authenticator. Em “Adicionar conta”, escolha “Inserir chave de configuração”.
+        Primeiro acesso: cadastre o Google Authenticator. Leia o QR com o aplicativo ou digite a chave.
       </Text>
       {config ? (
+        <View testID="qr" className="items-center rounded-xl bg-white p-3">
+          <QRCode value={config.otpauth_uri} size={176} />
+        </View>
+      ) : null}
+      {config ? (
         <View className="gap-1 rounded-xl bg-vupth-surface p-3">
-          <Text className="text-xs text-vupth-textSecondary">Chave</Text>
+          <Text className="text-xs text-vupth-textSecondary">Ou digite a chave</Text>
           <Text testID="chave" selectable className="font-mono text-vupth-textPrimary">
             {config.secret}
           </Text>
