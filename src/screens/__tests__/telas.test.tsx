@@ -102,7 +102,9 @@ describe("Entrar", () => {
   it("olho mostra e oculta a senha", () => {
     render(<Entrar onEntrou={jest.fn()} />);
     expect(screen.getByTestId("senha").props.secureTextEntry).toBe(true);
+    expect(screen.getByLabelText("Mostrar senha")).toBeTruthy();
     fireEvent.press(screen.getByTestId("senha-ver"));
+    expect(screen.getByLabelText("Ocultar senha")).toBeTruthy();
     expect(screen.getByTestId("senha").props.secureTextEntry).toBe(false);
     fireEvent.press(screen.getByTestId("senha-ver"));
     expect(screen.getByTestId("senha").props.secureTextEntry).toBe(true);
@@ -150,6 +152,7 @@ describe("Segundo fator", () => {
     render(<SegundoFator etapa="configurar" onPronto={onPronto} />);
     expect(screen.getByTestId("carregando-chave")).toBeTruthy();
     expect(await screen.findByText("ABCD EFGH")).toBeTruthy();
+    expect(screen.getByTestId("qr")).toBeTruthy();
     fireEvent.press(screen.getByTestId("confirmar"));
     expect(screen.getByText("Digite o código do aplicativo.")).toBeTruthy();
     a.confirmarConfiguracao.mockRejectedValueOnce(new ApiError(401, "ADMIN_TOTP_INVALID", "x"));
@@ -168,6 +171,7 @@ describe("Segundo fator", () => {
     a.iniciarConfiguracao.mockRejectedValue(new ApiError(409, "ADMIN_TOTP_ALREADY_ENABLED", "Já ativado."));
     render(<SegundoFator etapa="configurar" onPronto={jest.fn()} />);
     expect(await screen.findByText("Já ativado.")).toBeTruthy();
+    expect(screen.queryByTestId("qr")).toBeNull();
     expect(screen.getByTestId("confirmar").props.accessibilityState.disabled).toBe(true);
   });
 });

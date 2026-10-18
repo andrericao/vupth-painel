@@ -158,7 +158,7 @@ describe("Convite (tela do convidado)", () => {
     expect(screen.getByText("Digite a senha.")).toBeTruthy();
     fireEvent.changeText(screen.getByTestId("nova-senha"), "abc");
     fireEvent.press(screen.getByTestId("definir"));
-    expect(screen.getByText("De 6 a 64 caracteres.", { exact: true })).toBeTruthy();
+    expect(screen.getByText("De 6 a 64 caracteres", { exact: true })).toBeTruthy();
     fireEvent.changeText(screen.getByTestId("nova-senha"), "senha123");
     fireEvent.changeText(screen.getByTestId("repete-senha"), "outra123");
     fireEvent.press(screen.getByTestId("definir"));

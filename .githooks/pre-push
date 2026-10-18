@@ -1,12 +1,43 @@
 #!/usr/bin/env sh
-# Pre-push do painel: lint -> typecheck -> jest com cobertura (98% em tudo). Falhou, o push para.
+#
+# Pre-push do painel (molde do vupth-partner): bloqueia o push se algo estiver quebrado.
+# Gate, na ordem: lint -> typecheck -> jest com cobertura -> config (expo-doctor).
+# Bypass de emergencia: git push --no-verify
+#
 set -e
-# Node >= 20.19.4 (o do sistema pode ser o 18): a versão mais nova do nvm vai na frente do PATH.
+# Node >= 20.19.4 (o do sistema pode ser o 18): a versao mais nova do nvm vai na frente do PATH.
 if [ -d "${NVM_DIR:-$HOME/.nvm}/versions/node" ]; then
   ULTIMO=$(ls -1 "${NVM_DIR:-$HOME/.nvm}/versions/node" | sort -V | tail -1)
   [ -n "$ULTIMO" ] && PATH="${NVM_DIR:-$HOME/.nvm}/versions/node/$ULTIMO/bin:$PATH"
 fi
-echo "[pre-push] 1/3 lint";      npm run --silent lint
-echo "[pre-push] 2/3 typecheck"; npm run --silent typecheck
-echo "[pre-push] 3/3 jest --coverage"
-if [ -z "$VUPTH_TRAVA" ]; then flock /tmp/vupth-maestro.lock npx jest --coverage --silent; else npx jest --coverage --silent; fi
+
+echo "[pre-push] 1/4 lint (eslint --max-warnings 0)"
+npm run --silent lint
+
+echo "[pre-push] 2/4 typecheck (tsc --noEmit)"
+npm run --silent typecheck
+
+echo "[pre-push] 3/4 jest --coverage (piso 80%, DEC-82)"
+# DEC-22: a falha do jest fica em .logs-teste/<data>_jest_FALHA.txt (o hook do vupth-docs acorda a
+# equipe com ela); verde apaga as falhas antigas. O codigo de saida sai por arquivo: o pipe com tee o esconderia.
+LOGS=.logs-teste
+mkdir -p "$LOGS"
+SAIDA=$(mktemp)
+CODIGO=$(mktemp)
+# DEC-33: o jest e' pesado — espera a vez na trava da maquina (um pesado por vez).
+if [ -z "$VUPTH_TRAVA" ]; then TRAVA="flock /tmp/vupth-maestro.lock"; else TRAVA=""; fi
+{ $TRAVA npm test -- --ci --coverage --silent 2>&1; echo $? > "$CODIGO"; } | tee "$SAIDA"
+RC=$(cat "$CODIGO")
+rm -f "$CODIGO"
+if [ "$RC" != "0" ]; then
+  LOG="$LOGS/$(date +%Y-%m-%d_%H%M%S)_jest_FALHA.txt"
+  mv "$SAIDA" "$LOG"
+  echo "[pre-push] jest falhou - log em $LOG"
+  exit "$RC"
+fi
+rm -f "$SAIDA" "$LOGS"/*_jest_FALHA.txt
+
+echo "[pre-push] 4/4 config (expo-doctor)"
+npx expo-doctor
+
+echo "[pre-push] OK - tudo verde, push liberado"

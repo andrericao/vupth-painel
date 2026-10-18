@@ -1,4 +1,4 @@
-// O preset nativo do jest-expo não tem sessionStorage; o painel roda no navegador, onde ele existe.
+// O preset nativo do jest-expo não tem sessionStorage nem localStorage; o painel roda no navegador, onde ele existe.
 class MemoriaStorage {
   constructor() {
     this.m = new Map();
@@ -17,3 +17,4 @@ class MemoriaStorage {
   }
 }
 Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: new MemoriaStorage() });
+Object.defineProperty(globalThis, "localStorage", { configurable: true, value: new MemoriaStorage() });

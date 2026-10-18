@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
 
 import { EsperaBackend } from "../EsperaBackend";
-import { ativo, MENU, Shell } from "../Shell";
+import { ativo, lerRecolhido, MENU, Shell } from "../Shell";
 import { Aviso, Barra, Botao, Campo, Cartao, Estado, Pilulas } from "../ui";
 import { PREVIAS } from "../../screens/previas";
 
@@ -106,6 +106,54 @@ describe("Shell", () => {
     expect(onIr).toHaveBeenCalledWith("/usuarios");
     fireEvent.press(screen.getByTestId("sair"));
     expect(onSair).toHaveBeenCalled();
+  });
+
+  it("recolhe o menu para só ícones, guarda no navegador e volta", () => {
+    largura(1280);
+    localStorage.clear();
+    const props = { atual: "/", nome: "André", onIr: jest.fn(), onSair: jest.fn() };
+    const { unmount } = render(
+      <Shell {...props}>
+        <Text>conteúdo</Text>
+      </Shell>,
+    );
+    fireEvent.press(screen.getByTestId("recolher-menu"));
+    expect(screen.queryByText("André")).toBeNull();
+    expect(screen.queryByText("Campanhas")).toBeNull();
+    expect(screen.getByLabelText("Expandir o menu")).toBeTruthy();
+    expect(screen.getByLabelText("Campanhas")).toBeTruthy();
+    expect(localStorage.getItem("vupth-painel:menu-recolhido")).toBe("1");
+    unmount();
+    render(
+      <Shell {...props}>
+        <Text>conteúdo</Text>
+      </Shell>,
+    );
+    expect(screen.queryByText("Campanhas")).toBeNull();
+    fireEvent.press(screen.getByTestId("recolher-menu"));
+    expect(screen.getByText("Campanhas")).toBeTruthy();
+    expect(localStorage.getItem("vupth-painel:menu-recolhido")).toBe("0");
+    localStorage.clear();
+  });
+
+  it("sem storage o menu começa aberto e recolhe só até recarregar", () => {
+    largura(1280);
+    const spy = jest.spyOn(localStorage, "getItem").mockImplementation(() => {
+      throw new Error("bloqueado");
+    });
+    const set = jest.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new Error("bloqueado");
+    });
+    expect(lerRecolhido()).toBe(false);
+    render(
+      <Shell atual="/" nome="André" onIr={jest.fn()} onSair={jest.fn()}>
+        <Text>conteúdo</Text>
+      </Shell>,
+    );
+    fireEvent.press(screen.getByTestId("recolher-menu"));
+    expect(screen.queryByText("Campanhas")).toBeNull();
+    spy.mockRestore();
+    set.mockRestore();
   });
 
   it("no celular, barra de baixo", () => {
