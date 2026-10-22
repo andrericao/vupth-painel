@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 
 import { Aviso, Botao, Campo, Cartao, Pilulas } from "../components/ui";
 import { ApiError } from "../lib/api";
+import { mascaraData, mascaraPercentual, mascaraValor, somenteNumeros } from "../lib/mascaras";
 import {
   avisoBeneficio,
   criarCampanha,
@@ -55,6 +56,7 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
   }
 
   const ehLink = f.modo === "link";
+  const ehPercentual = !ehLink && f.beneficio === "porcento";
 
   return (
     <View className="gap-5">
@@ -143,9 +145,9 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
             testID="valor"
             rotulo={ehLink ? "Valor por corte (R$)" : f.beneficio === "porcento" ? "Desconto (%)" : "Desconto (R$)"}
             valor={f.valor}
-            onChange={muda("valor")}
+            onChange={(v) => muda("valor")(ehPercentual ? mascaraPercentual(v) : mascaraValor(v))}
             erro={erros.valor}
-            placeholder="0,00"
+            placeholder={ehPercentual ? "0" : "0,00"}
           />
         ) : null}
         {ehLink ? <ParametrosBonificacao f={f} erros={erros} muda={muda} /> : null}
@@ -154,10 +156,10 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
       <Cartao titulo="4. Quando e quantos">
         <View className="flex-row flex-wrap gap-4">
           <View className="min-w-[180px] flex-1">
-            <Campo testID="inicio" rotulo="Início" valor={f.inicio} onChange={muda("inicio")} erro={erros.inicio} placeholder="AAAA-MM-DD" />
+            <Campo testID="inicio" rotulo="Início" valor={f.inicio} onChange={(v) => muda("inicio")(mascaraData(v))} erro={erros.inicio} placeholder="dd/mm/aaaa" maxLength={10} />
           </View>
           <View className="min-w-[180px] flex-1">
-            <Campo testID="fim" rotulo="Fim" valor={f.fim} onChange={muda("fim")} erro={erros.fim} placeholder="AAAA-MM-DD" />
+            <Campo testID="fim" rotulo="Fim" valor={f.fim} onChange={(v) => muda("fim")(mascaraData(v))} erro={erros.fim} placeholder="dd/mm/aaaa" maxLength={10} />
           </View>
         </View>
         <Text className="text-sm font-medium text-vupth-textPrimary">Dias da semana (nenhum = todos)</Text>
@@ -171,7 +173,7 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
           testID="limite"
           rotulo="Limite de pessoas (vazio = sem limite)"
           valor={f.limite}
-          onChange={muda("limite")}
+          onChange={(v) => muda("limite")(somenteNumeros(v, 7))}
           erro={erros.limite}
         />
       </Cartao>
@@ -198,7 +200,7 @@ function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: Retur
             testID="pct-profissional"
             rotulo="% ao profissional"
             valor={f.pctProfissional}
-            onChange={muda("pctProfissional")}
+            onChange={(v) => muda("pctProfissional")(mascaraPercentual(v))}
             erro={erros.pctProfissional}
           />
         </View>
@@ -207,7 +209,7 @@ function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: Retur
             testID="pct-dono"
             rotulo="% ao dono"
             valor={f.pctDono}
-            onChange={muda("pctDono")}
+            onChange={(v) => muda("pctDono")(mascaraPercentual(v))}
             erro={erros.pctDono}
             dica="Os dois somam 100%."
           />
@@ -250,7 +252,7 @@ function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: Retur
           testID="dia-mes"
           rotulo="Dia do mês (1 a 28)"
           valor={f.diaPagamento}
-          onChange={muda("diaPagamento")}
+          onChange={(v) => muda("diaPagamento")(somenteNumeros(v, 2))}
           erro={erros.diaPagamento}
         />
       ) : null}

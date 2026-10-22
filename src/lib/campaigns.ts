@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { brParaIso, isoParaBr, valorParaCampo } from "./mascaras";
 
 // Contrato do Backend: /admin/campaigns (campanha-pelo-painel, 8da79d0), só para o papel ADMIN.
 export type CampaignType = "REFERRAL_BONUS" | "FEE_WAIVER" | "DISCOUNT";
@@ -89,8 +90,8 @@ export type Formulario = {
   publico: CampaignAudience | "TODOS";
   beneficio: Beneficio;
   valor: string;
-  inicio: string; // AAAA-MM-DD
-  fim: string; // AAAA-MM-DD
+  inicio: string; // dd/mm/aaaa (a máscara do campo)
+  fim: string; // dd/mm/aaaa
   dias: string[];
   limite: string;
   soClientesNovos: boolean;
@@ -111,7 +112,7 @@ export function formularioVazio(hoje: string): Formulario {
     publico: "TODOS",
     beneficio: "reais",
     valor: "",
-    inicio: hoje,
+    inicio: isoParaBr(hoje),
     fim: "",
     dias: [],
     limite: "",
@@ -139,9 +140,9 @@ export function formularioDe(c: Campaign): Formulario {
     codigo: c.code ?? "",
     publico: c.audience ?? "TODOS",
     beneficio: c.type === "FEE_WAIVER" ? "taxa-zero" : c.value_percent != null ? "porcento" : "reais",
-    valor: String(c.value_percent ?? c.value_amount ?? "").replace(".", ","),
-    inicio: diaSP(c.starts_at),
-    fim: diaSP(c.ends_at),
+    valor: c.value_percent != null ? String(c.value_percent).replace(".", ",") : c.value_amount != null ? valorParaCampo(c.value_amount) : "",
+    inicio: isoParaBr(diaSP(c.starts_at)),
+    fim: isoParaBr(diaSP(c.ends_at)),
     dias: c.weekdays ? c.weekdays.split(",") : [],
     limite: c.max_redemptions != null ? String(c.max_redemptions) : "",
     soClientesNovos: c.new_clients_only,
@@ -156,8 +157,6 @@ export function formularioDe(c: Campaign): Formulario {
 function texto(n: number | null | undefined): string {
   return n == null ? "" : String(n).replace(".", ",");
 }
-
-const DATA = /^\d{4}-\d{2}-\d{2}$/;
 
 export function numero(texto: string): number | null {
   const t = texto.trim().replace(/\./g, "").replace(",", ".");
@@ -180,9 +179,11 @@ export function validar(f: Formulario): Partial<Record<keyof Formulario, string>
     if (v == null || v <= 0) erros.valor = "Informe o valor.";
     else if (f.modo === "cupom" && f.beneficio === "porcento" && v > 100) erros.valor = "Até 100%.";
   }
-  if (!DATA.test(f.inicio)) erros.inicio = "Data no formato AAAA-MM-DD.";
-  if (!DATA.test(f.fim)) erros.fim = "Data no formato AAAA-MM-DD.";
-  else if (!erros.inicio && f.fim < f.inicio) erros.fim = "O fim tem de ser depois do início.";
+  const inicio = brParaIso(f.inicio);
+  const fim = brParaIso(f.fim);
+  if (!inicio) erros.inicio = "Data no formato dd/mm/aaaa.";
+  if (!fim) erros.fim = "Data no formato dd/mm/aaaa.";
+  else if (inicio && fim < inicio) erros.fim = "O fim tem de ser depois do início.";
   if (f.limite.trim()) {
     const l = Number(f.limite.trim());
     if (!Number.isInteger(l) || l < 1) erros.limite = "Um número inteiro, 1 ou mais.";
@@ -222,8 +223,8 @@ export function paraRequest(f: Formulario): CampaignRequest {
     audience: f.publico === "TODOS" ? null : f.publico,
     value_amount: emPorcento ? null : valor,
     value_percent: emPorcento ? valor : null,
-    starts_at: `${f.inicio}T00:00:00-03:00`,
-    ends_at: `${f.fim}T23:59:59-03:00`,
+    starts_at: `${brParaIso(f.inicio)}T00:00:00-03:00`,
+    ends_at: `${brParaIso(f.fim)}T23:59:59-03:00`,
     weekdays: f.dias.length ? DIAS.filter((d) => f.dias.includes(d)).join(",") : null,
     max_redemptions: f.limite.trim() ? Number(f.limite.trim()) : null,
     new_clients_only: f.soClientesNovos,

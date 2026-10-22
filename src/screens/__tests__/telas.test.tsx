@@ -289,7 +289,7 @@ describe("Campanhas", () => {
     fireEvent.press(screen.getByTestId("criar"));
     fireEvent.changeText(screen.getByTestId("nome"), "Nova");
     fireEvent.changeText(screen.getByTestId("valor"), "5");
-    fireEvent.changeText(screen.getByTestId("fim"), "2026-10-31");
+    fireEvent.changeText(screen.getByTestId("fim"), "31102026");
     fireEvent.press(screen.getByTestId("salvar"));
     expect(await screen.findByText("Nova")).toBeTruthy();
 
@@ -307,7 +307,7 @@ describe("Campanhas", () => {
     fireEvent.press(screen.getByTestId("criar"));
     fireEvent.changeText(screen.getByTestId("nome"), "Nova");
     fireEvent.press(screen.getByTestId("beneficio-taxa-zero"));
-    fireEvent.changeText(screen.getByTestId("fim"), "2026-10-31");
+    fireEvent.changeText(screen.getByTestId("fim"), "31102026");
     fireEvent.press(screen.getByTestId("salvar"));
     expect(await screen.findByText("Nova")).toBeTruthy();
   });
@@ -350,9 +350,9 @@ describe("CampanhaForm", () => {
     fireEvent.changeText(screen.getByTestId("nome"), "Indique");
     fireEvent.changeText(screen.getByTestId("descricao"), "d");
     fireEvent.changeText(screen.getByTestId("codigo"), "INDIQUE");
-    fireEvent.changeText(screen.getByTestId("valor"), "3");
-    fireEvent.changeText(screen.getByTestId("inicio"), "2026-10-17");
-    fireEvent.changeText(screen.getByTestId("fim"), "2026-10-31");
+    fireEvent.changeText(screen.getByTestId("valor"), "300");
+    fireEvent.changeText(screen.getByTestId("inicio"), "17102026");
+    fireEvent.changeText(screen.getByTestId("fim"), "31102026");
     fireEvent.changeText(screen.getByTestId("limite"), "50");
     fireEvent.press(screen.getByTestId("salvar"));
     expect(screen.getByText("Escolha quem conta.")).toBeTruthy();
@@ -395,6 +395,25 @@ describe("CampanhaForm", () => {
       }),
     );
   }, 20000);
+
+  it("as máscaras aceitam só o que o campo permite", () => {
+    render(<CampanhaForm {...props} />);
+    fireEvent.changeText(screen.getByTestId("inicio"), "17ab102026999");
+    expect(screen.getByTestId("inicio").props.value).toBe("17/10/2026");
+    fireEvent.changeText(screen.getByTestId("valor"), "1250");
+    expect(screen.getByTestId("valor").props.value).toBe("12,50");
+    fireEvent.press(screen.getByTestId("beneficio-porcento"));
+    fireEvent.changeText(screen.getByTestId("valor"), "150,567");
+    expect(screen.getByTestId("valor").props.value).toBe("100");
+    fireEvent.changeText(screen.getByTestId("limite"), "12a3");
+    expect(screen.getByTestId("limite").props.value).toBe("123");
+    fireEvent.press(screen.getByTestId("modo-link"));
+    fireEvent.changeText(screen.getByTestId("pct-profissional"), "7x0,555");
+    expect(screen.getByTestId("pct-profissional").props.value).toBe("70,55");
+    fireEvent.press(screen.getByTestId("pagamento-MONTHLY"));
+    fireEvent.changeText(screen.getByTestId("dia-mes"), "2a8z9");
+    expect(screen.getByTestId("dia-mes").props.value).toBe("28");
+  });
 
   it("os rótulos do valor seguem o benefício", () => {
     render(<CampanhaForm {...props} />);
