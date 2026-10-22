@@ -7,6 +7,7 @@ import { Alertas } from "../Alertas";
 import { comDivisao, Dinheiro } from "../Dinheiro";
 import { Hoje } from "../Hoje";
 import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
+import { Suporte } from "../Suporte";
 
 jest.mock("../../lib/admin", () => ({
   ...jest.requireActual("../../lib/admin"),
@@ -17,6 +18,7 @@ jest.mock("../../lib/admin", () => ({
   listarUsuarios: jest.fn(),
   listarLojas: jest.fn(),
   listarAuditoria: jest.fn(),
+  listarSuporte: jest.fn(),
 }));
 jest.mock("../../lib/lucro", () => ({ ...jest.requireActual("../../lib/lucro"), buscarLucro: jest.fn() }));
 const m = A as jest.Mocked<typeof A>;
@@ -146,6 +148,64 @@ describe("Usuários, Estabelecimentos e Auditoria", () => {
     expect(await screen.findByText("GET /admin/users?q=a")).toBeTruthy();
     expect(screen.getByText("422")).toBeTruthy();
     expect(m.listarAuditoria).toHaveBeenCalledWith(0);
+  });
+});
+
+describe("Suporte", () => {
+  const msg = (id: string, categoria: string | undefined, extra: Partial<A.MensagemSuporte> = {}): A.MensagemSuporte => ({
+    id,
+    name: `Pessoa ${id}`,
+    email: `pessoa${id}@gmail.com`,
+    profile: "CLIENT",
+    category: categoria,
+    subject: `Assunto ${id}`,
+    message: `Texto longo da mensagem ${id}`,
+    created_at: "2026-10-22T12:00:00Z",
+    ...extra,
+  });
+
+  it("lista, filtra por categoria, abre a mensagem e só mostra o e-mail depois do clique", async () => {
+    m.listarSuporte.mockResolvedValue(pagina([msg("1", "Pagamento"), msg("2", "Conta", { subject: undefined, profile: undefined }), msg("3", undefined)], 45));
+    render(<Suporte />);
+    expect(await screen.findByText("Assunto 1")).toBeTruthy();
+    expect(screen.getByText("Sem assunto")).toBeTruthy();
+    expect(screen.getAllByText("p***@gmail.com · mostrar").length).toBe(3);
+    expect(screen.queryByText(/pessoa1@gmail.com/)).toBeNull();
+    fireEvent.press(screen.getByTestId("email-1"));
+    expect(screen.getByText("pessoa1@gmail.com · ocultar")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("email-1"));
+    expect(screen.queryByText(/pessoa1@gmail.com/)).toBeNull();
+    expect(screen.queryByTestId("texto-1")).toBeNull();
+    fireEvent.press(screen.getByTestId("msg-1"));
+    expect(screen.getByTestId("texto-1")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("msg-1"));
+    expect(screen.queryByTestId("texto-1")).toBeNull();
+    fireEvent.press(screen.getByText("Conta"));
+    expect(screen.queryByText("Assunto 1")).toBeNull();
+    expect(screen.getByText("Sem assunto")).toBeTruthy();
+    fireEvent.press(screen.getByText("Pagamento"));
+    expect(screen.getByText("Assunto 1")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("proxima"));
+    await waitFor(() => expect(m.listarSuporte).toHaveBeenLastCalledWith(1));
+  });
+
+  it("sem mensagem; e categoria sem mensagens", async () => {
+    m.listarSuporte.mockResolvedValue(pagina([]));
+    render(<Suporte />);
+    expect(await screen.findByText("Nenhuma mensagem ainda.")).toBeTruthy();
+  });
+
+  it("categoria escolhida sem mensagens na página seguinte, e erro de permissão", async () => {
+    m.listarSuporte.mockResolvedValueOnce(pagina([msg("1", "Pagamento")], 40));
+    render(<Suporte />);
+    await screen.findByText("Assunto 1");
+    fireEvent.press(screen.getByText("Pagamento"));
+    m.listarSuporte.mockResolvedValueOnce(pagina([msg("2", "Conta")], 40));
+    fireEvent.press(screen.getByTestId("proxima"));
+    expect(await screen.findByText("Nenhuma mensagem nesta categoria.")).toBeTruthy();
+    m.listarSuporte.mockRejectedValueOnce(new ApiError(403, "ADMIN_PERMISSION_DENIED", "negado"));
+    fireEvent.press(screen.getByTestId("anterior"));
+    expect(await screen.findByText(/não tem a permissão/)).toBeTruthy();
   });
 });
 

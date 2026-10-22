@@ -78,6 +78,17 @@ export type AuditoriaLinha = {
   created_at: string;
 };
 
+export type MensagemSuporte = {
+  id: string;
+  name: string;
+  email: string;
+  profile?: string;
+  category?: string;
+  subject?: string;
+  message: string;
+  created_at: string;
+};
+
 export const TAMANHO_PAGINA = 20;
 
 function consulta(params: Record<string, string | number | undefined>): string {
@@ -97,6 +108,8 @@ export const listarUsuarios = (q: string, page: number) =>
   api<Pagina<UsuarioLinha>>(`/admin/users${consulta({ q: q.trim(), page, size: TAMANHO_PAGINA })}`);
 export const listarLojas = (q: string, page: number) =>
   api<Pagina<LojaLinha>>(`/admin/establishments${consulta({ q: q.trim(), page, size: TAMANHO_PAGINA })}`);
+export const listarSuporte = (page: number) =>
+  api<Pagina<MensagemSuporte>>(`/admin/support/messages${consulta({ page, size: TAMANHO_PAGINA })}`);
 export const listarAuditoria = (page: number) =>
   api<Pagina<AuditoriaLinha>>(`/admin/audit${consulta({ page, size: TAMANHO_PAGINA })}`);
 
@@ -125,4 +138,11 @@ export function podeVer(rota: string, permissoes?: string[]): boolean {
   if (!permissoes) return true;
   const p = PERMISSAO_DA_ROTA[rota];
   return !p || permissoes.includes(p);
+}
+
+/** "ana@gmail.com" → "a***@gmail.com": o e-mail só aparece inteiro depois do clique. */
+export function mascararEmail(email: string): string {
+  const [usuario, dominio] = email.split("@");
+  if (!dominio) return "***";
+  return `${usuario.slice(0, 1)}***@${dominio}`;
 }

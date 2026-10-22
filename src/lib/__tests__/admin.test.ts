@@ -6,7 +6,9 @@ import {
   lerSerie,
   listarAuditoria,
   listarLojas,
+  listarSuporte,
   listarUsuarios,
+  mascararEmail,
   podeVer,
   variacao,
 } from "../admin";
@@ -33,8 +35,15 @@ describe("admin", () => {
     expect(chamar).toHaveBeenLastCalledWith("/admin/users?q=ana&page=2&size=20");
     await listarLojas("", 0);
     expect(chamar).toHaveBeenLastCalledWith("/admin/establishments?page=0&size=20");
+    await listarSuporte(3);
+    expect(chamar).toHaveBeenLastCalledWith("/admin/support/messages?page=3&size=20");
     await listarAuditoria(1);
     expect(chamar).toHaveBeenLastCalledWith("/admin/audit?page=1&size=20");
+  });
+
+  it("mascararEmail: primeira letra e o domínio; sem arroba, tudo escondido", () => {
+    expect(mascararEmail("ana@gmail.com")).toBe("a***@gmail.com");
+    expect(mascararEmail("sem-arroba")).toBe("***");
   });
 
   it("variacao: igual, mais e menos", () => {

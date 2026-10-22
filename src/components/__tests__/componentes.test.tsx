@@ -1,10 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
 
-import { EsperaBackend } from "../EsperaBackend";
 import { ativo, lerRecolhido, MENU, Shell } from "../Shell";
 import { Aviso, Barra, Botao, Campo, Cartao, Estado, Pilulas } from "../ui";
-import { PREVIAS } from "../../screens/previas";
 
 let mockLargura = 1280;
 jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
@@ -208,16 +206,5 @@ describe("Shell", () => {
     fireEvent.press(screen.getByTestId("sair"));
     expect(onSair).toHaveBeenCalled();
     largura(1280);
-  });
-});
-
-describe("EsperaBackend", () => {
-  it("cada tela mostra o endpoint que espera e nenhum número", () => {
-    Object.values(PREVIAS).forEach((p) => {
-      const { unmount } = render(<EsperaBackend previa={p} />);
-      expect(screen.getByText(`Espera o Backend: ${p.endpoint}`)).toBeTruthy();
-      expect(screen.queryAllByText("—")).toHaveLength(p.numeros.length);
-      unmount();
-    });
   });
 });
