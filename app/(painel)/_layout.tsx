@@ -12,6 +12,7 @@ export default function PainelLayout() {
     <Shell
       atual={atual}
       nome={sessao.nome}
+      permissoes={sessao.permissoes}
       onIr={(rota) => router.push(rota as never)}
       onSair={() => {
         sair();

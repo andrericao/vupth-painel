@@ -16,6 +16,8 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 
+import { podeVer } from "../lib/admin";
+
 export type ItemMenu = { rota: string; nome: string; Icone: LucideIcon };
 
 // A ordem do menu é a da proposta do ADM-1 (painel.html → Solicitadas).
@@ -56,10 +58,11 @@ export function ativo(rota: string, atual: string): boolean {
   return rota === "/" ? atual === "/" : atual === rota || atual.startsWith(`${rota}/`);
 }
 
-type Props = { atual: string; nome: string; onIr: (rota: string) => void; onSair: () => void; children: ReactNode };
+type Props = { atual: string; nome: string; permissoes?: string[]; onIr: (rota: string) => void; onSair: () => void; children: ReactNode };
 
 /** Menu lateral floresta (o mockup-painel); no celular, o menu vira barra de baixo. */
-export function Shell({ atual, nome, onIr, onSair, children }: Props) {
+export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props) {
+  const menu = MENU.filter((m) => podeVer(m.rota, permissoes));
   const { width } = useWindowDimensions();
   const celular = width < LARGURA_CELULAR;
   const [recolhido, setRecolhido] = useState(lerRecolhido);
@@ -81,7 +84,7 @@ export function Shell({ atual, nome, onIr, onSair, children }: Props) {
           {children}
         </ScrollView>
         <ScrollView horizontal className="max-h-16 grow-0 bg-vupth-forest" contentContainerClassName="px-2">
-          {MENU.map((m) => (
+          {menu.map((m) => (
             <ItemBarra key={m.rota} item={m} marcado={ativo(m.rota, atual)} onPress={() => onIr(m.rota)} />
           ))}
         </ScrollView>
@@ -96,7 +99,7 @@ export function Shell({ atual, nome, onIr, onSair, children }: Props) {
           <View className={`mb-6 ${recolhido ? "items-center" : "px-3"}`}>
             <Text className="text-xl font-bold text-vupth-green">{recolhido ? "v" : "vupth · painel"}</Text>
           </View>
-          {MENU.map((m) => (
+          {menu.map((m) => (
             <ItemLateral
               key={m.rota}
               testID={`menu-${m.rota}`}

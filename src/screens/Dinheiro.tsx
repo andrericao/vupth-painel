@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
+import { Leitura, Numero } from "../components/leitura";
 import { Aviso, Botao, Cartao, Pilulas } from "../components/ui";
+import { lerFinanceiro } from "../lib/admin";
+import { useCarga } from "../lib/useCarga";
 import { ApiError } from "../lib/api";
 import { dataHora, dinheiro } from "../lib/format";
 import {
@@ -10,6 +13,7 @@ import {
   type AgruparPor,
   type LinhaLucro,
   type Parte,
+  intervaloDe,
   type Periodo,
   type RelatorioLucro,
 } from "../lib/lucro";
@@ -82,6 +86,9 @@ export function Dinheiro({ hoje }: { hoje: string }) {
         ]}
       />
 
+      <Financeiro periodo={periodo} hoje={hoje} />
+
+      <Text className="text-lg font-semibold text-vupth-textPrimary">Lucro do corte e da multa</Text>
       {erro ? (
         <View className="items-start gap-3">
           <Aviso texto={erro} />
@@ -144,5 +151,46 @@ function LinhaParte({ nome, p, forte }: { nome: string; p: Parte; forte?: boolea
         <Text className="font-semibold text-vupth-forest">lucro {dinheiro(p.app_profit)}</Text>
       </Text>
     </View>
+  );
+}
+
+const NOME_PAGAMENTO: Record<string, string> = {
+  PENDING: "Pendente",
+  AWAITING_CONFIRMATION: "Aguardando confirmação",
+  PAID: "Pago",
+};
+
+/** Os números do período: faturamento, taxas, o que falta receber, multas e a indicação (GET /admin/finance). */
+function Financeiro({ periodo, hoje }: { periodo: Periodo; hoje: string }) {
+  const { from, to } = intervaloDe(periodo, hoje);
+  const r = useCarga(`financeiro:${from ?? ""}:${to ?? ""}`, () => lerFinanceiro(from, to));
+  return (
+    <Leitura carregando={r.carregando} erro={r.erro} onTentar={r.recarregar}>
+      {r.dado ? (
+        <View className="gap-4">
+          <View className="flex-row flex-wrap gap-4">
+            <Numero rotulo="Faturamento bruto" valor={dinheiro(r.dado.money.gross_revenue)} />
+            <Numero rotulo="Taxa do Asaas" valor={dinheiro(r.dado.money.gateway_fee)} />
+            <Numero rotulo="Taxa do app" valor={dinheiro(r.dado.money.app_fee)} />
+            <Numero rotulo="Líquido dos profissionais" valor={dinheiro(r.dado.money.professionals_net)} />
+            <Numero rotulo="Multas geradas" valor={dinheiro(r.dado.money.penalties_generated)} />
+            <Numero rotulo="Multas cobradas" valor={dinheiro(r.dado.money.penalties_charged)} />
+          </View>
+          <Cartao titulo="Pagamentos por situação">
+            {r.dado.by_payment_status.map((s) => (
+              <Text key={s.status} className="text-vupth-textPrimary">
+                {NOME_PAGAMENTO[s.status] ?? s.status}: {s.count} · {dinheiro(s.amount)}
+              </Text>
+            ))}
+          </Cartao>
+          <Cartao titulo="Indicações (créditos)">
+            <Text className="text-vupth-textPrimary">
+              Total {dinheiro(r.dado.referral.credits_total)} · pagos {dinheiro(r.dado.referral.credits_paid)} · a pagar{" "}
+              {dinheiro(r.dado.referral.credits_unpaid)}
+            </Text>
+          </Cartao>
+        </View>
+      ) : null}
+    </Leitura>
   );
 }

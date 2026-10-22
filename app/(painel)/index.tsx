@@ -1,6 +1,5 @@
-import { EsperaBackend } from "../../src/components/EsperaBackend";
-import { PREVIAS } from "../../src/screens/previas";
+import { Hoje } from "../../src/screens/Hoje";
 
 export default function Tela() {
-  return <EsperaBackend previa={PREVIAS.hoje} />;
+  return <Hoje />;
 }

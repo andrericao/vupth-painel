@@ -168,6 +168,27 @@ describe("Shell", () => {
     set.mockRestore();
   });
 
+  it("esconde do menu a tela que a permissão não dá (computador e celular)", () => {
+    largura(1280);
+    const props = { atual: "/", nome: "André", onIr: jest.fn(), onSair: jest.fn(), permissoes: ["OVERVIEW"] };
+    const { unmount } = render(
+      <Shell {...props}>
+        <Text>conteúdo</Text>
+      </Shell>,
+    );
+    expect(screen.getByTestId("menu-/")).toBeTruthy();
+    expect(screen.queryByTestId("menu-/usuarios")).toBeNull();
+    unmount();
+    largura(390);
+    render(
+      <Shell {...props}>
+        <Text>conteúdo</Text>
+      </Shell>,
+    );
+    expect(screen.getByTestId("menu-/")).toBeTruthy();
+    expect(screen.queryByTestId("menu-/campanhas")).toBeNull();
+  });
+
   it("no celular, barra de baixo", () => {
     largura(390);
     const onIr = jest.fn();

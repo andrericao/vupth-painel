@@ -1,6 +1,5 @@
-import { EsperaBackend } from "../../src/components/EsperaBackend";
-import { PREVIAS } from "../../src/screens/previas";
+import { Auditoria } from "../../src/screens/Listas";
 
-export default function Tela() {
-  return <EsperaBackend previa={PREVIAS.auditoria} />;
+export default function AuditoriaRota() {
+  return <Auditoria />;
 }

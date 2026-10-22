@@ -1,5 +1,5 @@
 import { api, ApiError } from "./api";
-import { liberarSessao, limparSessao, salvarSessao, trocarToken, type Sessao } from "./session";
+import { guardarPermissoes, liberarSessao, limparSessao, salvarSessao, trocarToken, type Sessao } from "./session";
 
 type LoginResposta = {
   user: {
@@ -51,7 +51,8 @@ export type Configuracao = { secret: string; otpauth_uri: string };
  * então uma rota do painel decide: 401 ADMIN_TOTP_REQUIRED pede o fator, qualquer outra resposta abre.
  */
 export async function etapaDoSegundoFator(): Promise<Etapa> {
-  const st = await api<{ totp_enabled: boolean; verified: boolean }>("/admin/auth/status");
+  const st = await api<{ totp_enabled: boolean; verified: boolean; permissions?: string[] }>("/admin/auth/status");
+  if (Array.isArray(st.permissions)) guardarPermissoes(st.permissions);
   if (st.verified) return abrir();
   try {
     await api("/admin/campaigns");

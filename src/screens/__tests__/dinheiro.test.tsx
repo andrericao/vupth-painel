@@ -1,11 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 
 import { ApiError } from "../../lib/api";
+import * as A from "../../lib/admin";
 import * as L from "../../lib/lucro";
 import type { LinhaLucro, RelatorioLucro } from "../../lib/lucro";
 import { Dinheiro, mensagemDoErro } from "../Dinheiro";
 
 jest.mock("../../lib/lucro", () => ({ ...jest.requireActual("../../lib/lucro"), buscarLucro: jest.fn() }));
+jest.mock("../../lib/admin", () => ({ ...jest.requireActual("../../lib/admin"), lerFinanceiro: jest.fn() }));
 const buscar = L.buscarLucro as jest.Mock;
 
 const parte = (a: number, f: number, p: number) => ({ amount: a, asaas_fee: f, app_profit: p });
@@ -26,13 +28,21 @@ const relatorio = (x: Partial<RelatorioLucro> = {}): RelatorioLucro => ({
   ...x,
 });
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  (A.lerFinanceiro as jest.Mock).mockResolvedValue({
+    period: { from: "a", to: "b" },
+    money: {},
+    by_payment_status: [],
+    referral: {},
+  });
+});
 
 describe("Dinheiro", () => {
   it("mostra o total e cada dia com corte, multa e lucro", async () => {
     buscar.mockResolvedValue(relatorio());
     render(<Dinheiro hoje="2026-10-18" />);
-    expect(screen.getByTestId("carregando")).toBeTruthy();
+    expect(screen.getAllByTestId("carregando").length).toBeGreaterThan(0);
     expect(await screen.findByText("18/10/2026")).toBeTruthy();
     expect(screen.getByText("Total do período")).toBeTruthy();
     expect(screen.getAllByText("2 atendimentos").length).toBe(2);

@@ -209,6 +209,13 @@ describe("segundo fator", () => {
     expect(lerSessao()?.pendente).toBeUndefined();
   });
 
+  it("guarda as permissões do status na sessão", async () => {
+    await logado();
+    fetchMock.mockResolvedValueOnce(resposta(200, { totp_enabled: true, verified: true, permissions: ["OVERVIEW"] }));
+    await etapaDoSegundoFator();
+    expect(lerSessao()?.permissoes).toEqual(["OVERVIEW"]);
+  });
+
   it("sem a permissão da rota (403) o token vale: abre", async () => {
     await logado();
     fetchMock
