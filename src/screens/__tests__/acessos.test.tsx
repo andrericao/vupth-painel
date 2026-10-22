@@ -171,6 +171,17 @@ describe("Convite (tela do convidado)", () => {
     expect(onEntrar).toHaveBeenCalled();
   });
 
+  it("Enter na senha define a senha", async () => {
+    m.aceitarConvite.mockResolvedValue({ email: "novo@b.c", next: "TOTP_SETUP" });
+    render(<Convite token="tok" onEntrar={jest.fn()} />);
+    fireEvent.changeText(screen.getByTestId("nova-senha"), "senha123");
+    fireEvent.changeText(screen.getByTestId("repete-senha"), "senha123");
+    fireEvent(screen.getByTestId("repete-senha"), "submitEditing");
+    fireEvent(screen.getByTestId("nova-senha"), "submitEditing");
+    expect(await screen.findByText("Senha definida para novo@b.c.")).toBeTruthy();
+    expect(m.aceitarConvite).toHaveBeenCalledTimes(1);
+  });
+
   it("senha fora da regra (422) vai ao campo; convite vencido e sem rede viram aviso", async () => {
     render(<Convite token="tok" onEntrar={jest.fn()} />);
     fireEvent.changeText(screen.getByTestId("nova-senha"), "senha123");

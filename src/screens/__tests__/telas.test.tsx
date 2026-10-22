@@ -61,6 +61,20 @@ describe("Entrar", () => {
     expect(entrarMock).not.toHaveBeenCalled();
   });
 
+  it("Enter no e-mail ou na senha entra; Enter repetido enquanto envia não duplica", async () => {
+    let solta: (v: unknown) => void = () => {};
+    entrarMock.mockReturnValue(new Promise((r) => (solta = r)));
+    const onEntrou = jest.fn();
+    render(<Entrar onEntrou={onEntrou} />);
+    fireEvent.changeText(screen.getByTestId("email"), "a@b.c");
+    fireEvent.changeText(screen.getByTestId("senha"), "x");
+    fireEvent(screen.getByTestId("senha"), "submitEditing");
+    fireEvent(screen.getByTestId("email"), "submitEditing");
+    expect(entrarMock).toHaveBeenCalledTimes(1);
+    solta({});
+    await waitFor(() => expect(onEntrou).toHaveBeenCalled());
+  });
+
   it("entra e avisa", async () => {
     entrarMock.mockResolvedValue({});
     const onEntrou = jest.fn();
@@ -143,6 +157,28 @@ describe("Segundo fator", () => {
     expect(erroDoCodigo(new ApiError(0, null, "x"))).toMatch(/Sem conexão/);
     expect(erroDoCodigo(new ApiError(500, null, "falhou"))).toBe("falhou");
     expect(erroDoCodigo(new Error("outro"))).toBe("outro");
+  });
+
+  it("Enter no código verifica (entrada) e confirma (primeira vez, só com a chave pronta)", async () => {
+    a.verificarCodigo.mockResolvedValue(undefined);
+    const onPronto = jest.fn();
+    const { unmount } = render(<SegundoFator etapa="codigo" onPronto={onPronto} />);
+    fireEvent.changeText(screen.getByTestId("codigo"), "123456");
+    fireEvent(screen.getByTestId("codigo"), "submitEditing");
+    await waitFor(() => expect(onPronto).toHaveBeenCalled());
+    expect(a.verificarCodigo).toHaveBeenCalledWith("123456");
+    unmount();
+
+    a.iniciarConfiguracao.mockResolvedValue({ secret: "ABCD EFGH", otpauth_uri: "otpauth://x" });
+    a.confirmarConfiguracao.mockResolvedValue(["AAAAA-BBBBB"]);
+    render(<SegundoFator etapa="configurar" onPronto={jest.fn()} />);
+    fireEvent.changeText(screen.getByTestId("codigo"), "222222");
+    fireEvent(screen.getByTestId("codigo"), "submitEditing");
+    expect(a.confirmarConfiguracao).not.toHaveBeenCalled();
+    await screen.findByText("ABCD EFGH");
+    fireEvent(screen.getByTestId("codigo"), "submitEditing");
+    expect(await screen.findByText("AAAAA-BBBBB")).toBeTruthy();
+    expect(a.confirmarConfiguracao).toHaveBeenCalledWith("222222");
   });
 
   it("primeira vez: mostra a chave, confirma e mostra os códigos de recuperação uma vez", async () => {
