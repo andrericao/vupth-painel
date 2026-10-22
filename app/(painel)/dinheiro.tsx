@@ -1,6 +1,6 @@
-import { EsperaBackend } from "../../src/components/EsperaBackend";
-import { PREVIAS } from "../../src/screens/previas";
+import { hojeSP } from "../../src/lib/format";
+import { Dinheiro } from "../../src/screens/Dinheiro";
 
-export default function Tela() {
-  return <EsperaBackend previa={PREVIAS.dinheiro} />;
+export default function DinheiroRota() {
+  return <Dinheiro hoje={hojeSP()} />;
 }
