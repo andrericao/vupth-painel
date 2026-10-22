@@ -6,7 +6,7 @@ import { Aviso, Botao, Cartao, Pilulas } from "../components/ui";
 import { lerFinanceiro } from "../lib/admin";
 import { useCarga } from "../lib/useCarga";
 import { ApiError } from "../lib/api";
-import { dataHora, dinheiro, maisNovoPrimeiro } from "../lib/format";
+import { dataHora, formatarReais, maisNovoPrimeiro } from "../lib/format";
 import {
   buscarLucro,
   rotuloDaLinha,
@@ -150,8 +150,8 @@ function LinhaParte({ nome, p, dica, forte }: { nome: string; p: Parte; dica: st
         <Dica rotulo={nome} texto={dica} />
       </View>
       <Text className="text-vupth-textSecondary">
-        {dinheiro(p.amount)} · taxa {dinheiro(p.asaas_fee)} ·{" "}
-        <Text className="font-semibold text-vupth-forest">lucro {dinheiro(p.app_profit)}</Text>
+        {formatarReais(p.amount)} · taxa {formatarReais(p.asaas_fee)} ·{" "}
+        <Text className="font-semibold text-vupth-forest">lucro {formatarReais(p.app_profit)}</Text>
       </Text>
     </View>
   );
@@ -204,23 +204,23 @@ function Financeiro({ periodo, hoje, lucro }: { periodo: Periodo; hoje: string; 
       {r.dado ? (
         <View className="gap-4">
           <View className="flex-row flex-wrap gap-4">
-            <Numero rotulo="Faturamento bruto" valor={dinheiro(r.dado.money.gross_revenue)} dica={`${DICA.bruto} ${FIM_DICA}`} />
-            <Numero rotulo="Taxa do Asaas" valor={dinheiro(r.dado.money.gateway_fee)} dica={`${DICA.asaas} ${FIM_DICA}`} />
-            <Numero rotulo="Taxa do app" valor={dinheiro(r.dado.money.app_fee)} dica={`${DICA.app} ${FIM_DICA}`} />
+            <Numero rotulo="Faturamento bruto" valor={formatarReais(r.dado.money.gross_revenue)} dica={`${DICA.bruto} ${FIM_DICA}`} />
+            <Numero rotulo="Taxa do Asaas" valor={formatarReais(r.dado.money.gateway_fee)} dica={`${DICA.asaas} ${FIM_DICA}`} />
+            <Numero rotulo="Taxa do app" valor={formatarReais(r.dado.money.app_fee)} dica={`${DICA.app} ${FIM_DICA}`} />
             <Numero
               rotulo="Líquido dos profissionais"
-              valor={dinheiro(r.dado.money.professionals_net)}
+              valor={formatarReais(r.dado.money.professionals_net)}
               dica={`${DICA.liquido} ${FIM_DICA}`}
             />
-            <Numero rotulo="Multas geradas" valor={dinheiro(r.dado.money.penalties_generated)} dica={DICA.geradas} />
-            <Numero rotulo="Multas cobradas" valor={dinheiro(r.dado.money.penalties_charged)} dica={DICA.cobradas} />
+            <Numero rotulo="Multas geradas" valor={formatarReais(r.dado.money.penalties_generated)} dica={DICA.geradas} />
+            <Numero rotulo="Multas cobradas" valor={formatarReais(r.dado.money.penalties_charged)} dica={DICA.cobradas} />
           </View>
           {aviso ? <Aviso tom="atencao" texto={aviso} /> : null}
           <Cartao titulo="Pagamentos por situação">
             {r.dado.by_payment_status.map((s) => (
               <View key={s.status} className="gap-0.5">
                 <Text className="text-vupth-textPrimary">
-                  {NOME_PAGAMENTO[s.status]?.nome ?? s.status}: {s.count} · {dinheiro(s.amount)}
+                  {NOME_PAGAMENTO[s.status]?.nome ?? s.status}: {s.count} · {formatarReais(s.amount)}
                 </Text>
                 {NOME_PAGAMENTO[s.status]?.dica ? (
                   <Text className="text-xs text-vupth-textSecondary">{NOME_PAGAMENTO[s.status]?.dica}</Text>
@@ -230,8 +230,8 @@ function Financeiro({ periodo, hoje, lucro }: { periodo: Periodo; hoje: string; 
           </Cartao>
           <Cartao titulo="Indicações (créditos)">
             <Text className="text-vupth-textPrimary">
-              Total {dinheiro(r.dado.referral.credits_total)} · pagos {dinheiro(r.dado.referral.credits_paid)} · a pagar{" "}
-              {dinheiro(r.dado.referral.credits_unpaid)}
+              Total {formatarReais(r.dado.referral.credits_total)} · pagos {formatarReais(r.dado.referral.credits_paid)} · a pagar{" "}
+              {formatarReais(r.dado.referral.credits_unpaid)}
             </Text>
           </Cartao>
         </View>

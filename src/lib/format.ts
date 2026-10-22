@@ -1,7 +1,10 @@
 const FUSO = "America/Sao_Paulo";
 
-export function dinheiro(valor: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
+/** O padrão único de valor em reais: "R$ 53,90", "R$ 1.234,56" (símbolo, espaço comum, vírgula, duas casas). */
+export function formatarReais(valor: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })
+    .format(valor)
+    .replace(/\u00a0/g, " ");
 }
 
 export function dataCurta(iso: string): string {

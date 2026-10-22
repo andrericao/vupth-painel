@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { formatarReais } from "./format";
 import { brParaIso, isoParaBr, valorParaCampo } from "./mascaras";
 
 // Contrato do Backend: /admin/campaigns (campanha-pelo-painel, 8da79d0), só para o papel ADMIN.
@@ -264,7 +265,7 @@ export function descreverBeneficio(c: Campaign): string {
   const valor =
     c.value_percent != null
       ? `${String(c.value_percent).replace(".", ",")}%`
-      : `R$ ${(c.value_amount ?? 0).toFixed(2).replace(".", ",")}`;
+      : formatarReais(c.value_amount ?? 0);
   return c.type === "REFERRAL_BONUS" ? `Dinheiro · ${valor} por corte` : `Desconto de ${valor}`;
 }
 

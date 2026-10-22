@@ -4,7 +4,7 @@ import { Text, View } from "react-native";
 import { Aviso, Cartao, Pilulas } from "../components/ui";
 import { Leitura, Numero, Titulo } from "../components/leitura";
 import { lerAlertas } from "../lib/admin";
-import { dataHora, dinheiro, maisNovoPrimeiro } from "../lib/format";
+import { dataHora, formatarReais, maisNovoPrimeiro } from "../lib/format";
 import { useCarga } from "../lib/useCarga";
 
 const NAO_MEDIDO: Record<string, string> = {
@@ -36,15 +36,15 @@ export function Alertas() {
           <>
             <View className="flex-row flex-wrap gap-4">
               <Numero rotulo="Pagamentos parados" valor={String(a.payments_stuck_count)} />
-              <Numero rotulo="Valor parado" valor={dinheiro(a.payments_stuck_amount)} />
+              <Numero rotulo="Valor parado" valor={formatarReais(a.payments_stuck_amount)} />
               <Numero rotulo="Indicações a pagar" valor={String(a.referral_unpaid_count)} />
-              <Numero rotulo="Valor a pagar" valor={dinheiro(a.referral_unpaid_amount)} />
+              <Numero rotulo="Valor a pagar" valor={formatarReais(a.referral_unpaid_amount)} />
             </View>
             <Cartao titulo={`Pagamentos parados há mais de ${a.payments_stuck_hours} h`}>
               {a.payments_stuck.length ? (
                 maisNovoPrimeiro(a.payments_stuck, (p) => p.finished_at).map((p) => (
                   <Text key={p.attendance_id} className="text-vupth-textPrimary">
-                    #{p.attendance_id.slice(0, 8)} · {dinheiro(p.amount)} · concluído em {dataHora(p.finished_at)}
+                    #{p.attendance_id.slice(0, 8)} · {formatarReais(p.amount)} · concluído em {dataHora(p.finished_at)}
                   </Text>
                 ))
               ) : (

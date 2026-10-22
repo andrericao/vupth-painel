@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { Barra, Cartao } from "../components/ui";
 import { Leitura, Numero, Titulo } from "../components/leitura";
 import { lerOverview, lerSerie, variacao, type Overview } from "../lib/admin";
-import { dinheiro } from "../lib/format";
+import { formatarReais } from "../lib/format";
 import { useCarga } from "../lib/useCarga";
 
 const n = (v: number) => v.toLocaleString("pt-BR");
@@ -61,9 +61,9 @@ function Corpo({ o }: { o: Overview }) {
         <Numero rotulo="Removidos da fila" valor={n(f.removed)} variacao={variacao(f.removed, c.removed)} />
       </View>
       <View className="flex-row flex-wrap gap-4">
-        <Numero rotulo="Faturamento bruto" valor={dinheiro(m.gross_revenue)} variacao={variacao(m.gross_revenue, mc.gross_revenue)} />
-        <Numero rotulo="Taxa do app" valor={dinheiro(m.app_fee)} variacao={variacao(m.app_fee, mc.app_fee)} />
-        <Numero rotulo="Multas geradas" valor={dinheiro(m.penalties_generated)} variacao={variacao(m.penalties_generated, mc.penalties_generated)} />
+        <Numero rotulo="Faturamento bruto" valor={formatarReais(m.gross_revenue)} variacao={variacao(m.gross_revenue, mc.gross_revenue)} />
+        <Numero rotulo="Taxa do app" valor={formatarReais(m.app_fee)} variacao={variacao(m.app_fee, mc.app_fee)} />
+        <Numero rotulo="Multas geradas" valor={formatarReais(m.penalties_generated)} variacao={variacao(m.penalties_generated, mc.penalties_generated)} />
       </View>
     </View>
   );
