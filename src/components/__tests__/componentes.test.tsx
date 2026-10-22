@@ -123,6 +123,16 @@ describe("Shell", () => {
     expect(screen.getByLabelText("Expandir o menu")).toBeTruthy();
     expect(screen.getByLabelText("Campanhas")).toBeTruthy();
     expect(localStorage.getItem("vupth-painel:menu-recolhido")).toBe("1");
+    expect(screen.getByLabelText("Expandir o menu").props.accessibilityState).toEqual({ expanded: false });
+    expect(screen.queryByTestId("dica-menu-/campanhas")).toBeNull();
+    fireEvent(screen.getByTestId("menu-/campanhas"), "hoverIn");
+    expect(screen.getByTestId("dica-menu-/campanhas")).toBeTruthy();
+    fireEvent(screen.getByTestId("menu-/campanhas"), "hoverOut");
+    expect(screen.queryByTestId("dica-menu-/campanhas")).toBeNull();
+    fireEvent(screen.getByTestId("sair"), "focus");
+    expect(screen.getByTestId("dica-sair")).toBeTruthy();
+    fireEvent(screen.getByTestId("sair"), "blur");
+    expect(screen.queryByTestId("dica-sair")).toBeNull();
     unmount();
     render(
       <Shell {...props}>
@@ -132,6 +142,8 @@ describe("Shell", () => {
     expect(screen.queryByText("Campanhas")).toBeNull();
     fireEvent.press(screen.getByTestId("recolher-menu"));
     expect(screen.getByText("Campanhas")).toBeTruthy();
+    expect(screen.getByText("Collapse")).toBeTruthy();
+    expect(screen.getByLabelText("Recolher o menu").props.accessibilityState).toEqual({ expanded: true });
     expect(localStorage.getItem("vupth-painel:menu-recolhido")).toBe("0");
     localStorage.clear();
   });

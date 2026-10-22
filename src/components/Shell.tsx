@@ -91,60 +91,88 @@ export function Shell({ atual, nome, onIr, onSair, children }: Props) {
 
   return (
     <View className="flex-1 flex-row bg-vupth-surface">
-      <View className={`justify-between bg-vupth-forest p-4 ${recolhido ? "w-16 items-center" : "w-60"}`}>
+      <View className={`justify-between bg-vupth-forest py-4 ${recolhido ? "w-14 items-center px-2" : "w-60 px-4"}`}>
         <View className="gap-1">
-          <View className={`mb-6 flex-row items-center ${recolhido ? "justify-center" : "justify-between px-3"}`}>
-            {recolhido ? null : <Text className="text-xl font-bold text-vupth-green">vupth · painel</Text>}
-            <Pressable
-              testID="recolher-menu"
-              accessibilityRole="button"
-              accessibilityLabel={recolhido ? "Expandir o menu" : "Recolher o menu"}
-              onPress={alternar}
-            >
-              {recolhido ? <PanelLeftOpen color="#9FE870" size={20} /> : <PanelLeftClose color="#9FE870" size={20} />}
-            </Pressable>
+          <View className={`mb-6 ${recolhido ? "items-center" : "px-3"}`}>
+            <Text className="text-xl font-bold text-vupth-green">{recolhido ? "v" : "vupth · painel"}</Text>
           </View>
-          {MENU.map((m) => {
-            const marcado = ativo(m.rota, atual);
-            return (
-              <Pressable
-                key={m.rota}
-                testID={`menu-${m.rota}`}
-                accessibilityRole="link"
-                accessibilityLabel={m.nome}
-                accessibilityState={{ selected: marcado }}
-                onPress={() => onIr(m.rota)}
-                className={`flex-row items-center gap-3 rounded-full py-2 ${recolhido ? "justify-center px-2" : "px-3"} ${marcado ? "bg-vupth-green" : ""}`}
-              >
-                <m.Icone color={marcado ? "#163300" : "#E2F6D5"} size={18} />
-                {recolhido ? null : (
-                  <Text className={marcado ? "font-semibold text-vupth-forest" : "text-vupth-greenTint"}>{m.nome}</Text>
-                )}
-              </Pressable>
-            );
-          })}
+          {MENU.map((m) => (
+            <ItemLateral
+              key={m.rota}
+              testID={`menu-${m.rota}`}
+              nome={m.nome}
+              Icone={m.Icone}
+              marcado={ativo(m.rota, atual)}
+              recolhido={recolhido}
+              onPress={() => onIr(m.rota)}
+            />
+          ))}
         </View>
-        <View className={`gap-2 ${recolhido ? "items-center" : "px-3"}`}>
+        <View className={`gap-1 ${recolhido ? "items-center" : ""}`}>
           {recolhido ? null : (
-            <Text className="text-xs text-vupth-greenTint" numberOfLines={1}>
+            <Text className="px-3 pb-1 text-xs text-vupth-greenTint" numberOfLines={1}>
               {nome}
             </Text>
           )}
-          <Pressable
-            testID="sair"
-            accessibilityRole="button"
-            accessibilityLabel="Sair"
-            onPress={onSair}
-            className="flex-row items-center gap-2"
-          >
-            <LogOut color="#9FE870" size={16} />
-            {recolhido ? null : <Text className="text-vupth-green">Sair</Text>}
-          </Pressable>
+          <ItemLateral testID="sair" nome="Sair" Icone={LogOut} recolhido={recolhido} onPress={onSair} />
+          <ItemLateral
+            testID="recolher-menu"
+            nome={recolhido ? "Expandir o menu" : "Recolher o menu"}
+            rotulo="Collapse"
+            Icone={recolhido ? PanelLeftOpen : PanelLeftClose}
+            recolhido={recolhido}
+            expandido={!recolhido}
+            onPress={alternar}
+          />
         </View>
       </View>
       <ScrollView className="flex-1" contentContainerClassName="mx-auto w-full max-w-6xl gap-5 p-8">
         {children}
       </ScrollView>
+    </View>
+  );
+}
+
+type ItemLateralProps = {
+  testID: string;
+  nome: string;
+  rotulo?: string;
+  Icone: LucideIcon;
+  recolhido: boolean;
+  marcado?: boolean;
+  expandido?: boolean;
+  onPress: () => void;
+};
+
+/** Item da lateral: ícone e rótulo; recolhida, só o ícone, com o nome numa dica ao passar o mouse ou focar. */
+function ItemLateral({ testID, nome, rotulo, Icone, recolhido, marcado = false, expandido, onPress }: ItemLateralProps) {
+  const [dica, setDica] = useState(false);
+  return (
+    <View className="relative">
+      <Pressable
+        testID={testID}
+        accessibilityRole={expandido === undefined ? "link" : "button"}
+        accessibilityLabel={nome}
+        accessibilityState={expandido === undefined ? { selected: marcado } : { expanded: expandido }}
+        onPress={onPress}
+        onHoverIn={() => setDica(true)}
+        onHoverOut={() => setDica(false)}
+        onFocus={() => setDica(true)}
+        onBlur={() => setDica(false)}
+        className={`flex-row items-center gap-3 rounded-full py-2 ${recolhido ? "justify-center px-2" : "px-3"} ${marcado ? "bg-vupth-green" : ""}`}
+      >
+        <Icone color={marcado ? "#163300" : "#E2F6D5"} size={18} />
+        {recolhido ? null : (
+          <Text className={marcado ? "font-semibold text-vupth-forest" : "text-vupth-greenTint"}>{rotulo ?? nome}</Text>
+        )}
+      </Pressable>
+      {recolhido && dica ? (
+        <View pointerEvents="none" className="absolute left-12 top-1 z-10 rounded-md bg-vupth-forest px-2 py-1">
+          <Text testID={`dica-${testID}`} className="text-xs text-vupth-greenTint">
+            {nome}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
