@@ -6,7 +6,7 @@ import { Aviso, Botao, Cartao, Pilulas } from "../components/ui";
 import { lerFinanceiro } from "../lib/admin";
 import { useCarga } from "../lib/useCarga";
 import { ApiError } from "../lib/api";
-import { dataHora, dinheiro } from "../lib/format";
+import { dataHora, dinheiro, maisNovoPrimeiro } from "../lib/format";
 import {
   buscarLucro,
   rotuloDaLinha,
@@ -116,7 +116,7 @@ export function Dinheiro({ hoje }: { hoje: string }) {
               Nenhum pagamento neste período.
             </Text>
           ) : (
-            relatorio.items.map((l) => (
+            maisNovoPrimeiro(relatorio.items, (l) => l.paid_at ?? l.key).map((l) => (
               <Cartao key={l.key} titulo={rotuloDaLinha(l, agrupar)}>
                 {l.paid_at ? <Text className="text-vupth-textSecondary">Pago em {dataHora(l.paid_at)}</Text> : null}
                 <Resumo linha={l} />

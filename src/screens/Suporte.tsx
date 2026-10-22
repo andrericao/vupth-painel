@@ -4,7 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import { Leitura, Paginacao, Titulo } from "../components/leitura";
 import { Cartao, Pilulas } from "../components/ui";
 import { listarSuporte, mascararEmail, TAMANHO_PAGINA } from "../lib/admin";
-import { dataHora } from "../lib/format";
+import { dataHora, maisNovoPrimeiro } from "../lib/format";
 import { useCarga } from "../lib/useCarga";
 
 type Filtro = string;
@@ -19,7 +19,10 @@ export function Suporte() {
 
   const alternar = (lista: string[], id: string) => (lista.includes(id) ? lista.filter((x) => x !== id) : [...lista, id]);
   const categorias = Array.from(new Set((r.dado?.items ?? []).map((m) => m.category).filter(Boolean))) as string[];
-  const visiveis = (r.dado?.items ?? []).filter((m) => categoria === "TODAS" || m.category === categoria);
+  const visiveis = maisNovoPrimeiro(
+    (r.dado?.items ?? []).filter((m) => categoria === "TODAS" || m.category === categoria),
+    (m) => m.created_at,
+  );
 
   return (
     <View className="gap-5">

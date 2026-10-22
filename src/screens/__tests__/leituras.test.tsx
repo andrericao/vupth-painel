@@ -209,6 +209,45 @@ describe("Suporte", () => {
   });
 });
 
+describe("Ordem: do mais novo ao mais antigo", () => {
+  it("pagamentos parados, usuários e dias do lucro aparecem com o mais novo no topo", async () => {
+    m.lerAlertas.mockResolvedValue({
+      payments_stuck_hours: 24,
+      payments_stuck_count: 2,
+      payments_stuck_amount: 70,
+      payments_stuck: [
+        { attendance_id: "aaaaaaaa-0000", amount: 35, finished_at: "2026-10-20T12:00:00Z" },
+        { attendance_id: "bbbbbbbb-0000", amount: 35, finished_at: "2026-10-22T12:00:00Z" },
+      ],
+      referral_unpaid_count: 0,
+      referral_unpaid_amount: 0,
+      not_measured: [],
+    });
+    const { unmount } = render(<Alertas />);
+    await screen.findByText(/#aaaaaaaa/);
+    const ids = screen.getAllByText(/^#(aaaaaaaa|bbbbbbbb)/).map((n) => String(n.props.children[1]));
+    expect(ids).toEqual(["bbbbbbbb", "aaaaaaaa"]);
+    unmount();
+
+    const u = (id: string, nome: string, dia: string) => ({
+      id,
+      name: nome,
+      email: `${id}@x.com`,
+      roles: [],
+      active: true,
+      deleted: false,
+      created_at: dia,
+    });
+    m.listarUsuarios.mockResolvedValue(
+      pagina([u("1", "Antiga", "2026-10-01T12:00:00Z"), u("2", "Recente", "2026-10-21T12:00:00Z")]),
+    );
+    render(<Usuarios />);
+    await screen.findByText("Recente");
+    const nomes = screen.getAllByText(/^(Antiga|Recente)$/).map((n) => n.props.children);
+    expect(nomes).toEqual(["Recente", "Antiga"]);
+  });
+});
+
 describe("Alertas", () => {
   const alertas = (x: Partial<A.Alertas> = {}): A.Alertas => ({
     payments_stuck_hours: 24,

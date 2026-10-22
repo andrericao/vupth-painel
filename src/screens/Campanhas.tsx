@@ -15,7 +15,7 @@ import {
   type Campaign,
   type CampaignStatus,
 } from "../lib/campaigns";
-import { dataCurta } from "../lib/format";
+import { dataCurta, maisNovoPrimeiro } from "../lib/format";
 import { CampanhaForm } from "./CampanhaForm";
 
 type Filtro = CampaignStatus | "TODAS";
@@ -73,7 +73,10 @@ export function Campanhas({ hoje }: { hoje: string }) {
     );
   }
 
-  const visiveis = campanhas.filter((c) => filtro === "TODAS" || c.status === filtro);
+  const visiveis = maisNovoPrimeiro(
+    campanhas.filter((c) => filtro === "TODAS" || c.status === filtro),
+    (c) => c.starts_at,
+  );
   const noAr = campanhas.filter((c) => c.status === "RUNNING").length;
 
   return (

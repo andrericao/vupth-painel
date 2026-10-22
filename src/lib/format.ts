@@ -19,6 +19,15 @@ export function dataHora(iso: string): string {
   }).format(new Date(iso));
 }
 
+/** Do mais novo para o mais antigo (as listas do painel); sem data vai para o fim. Não muda a lista original. */
+export function maisNovoPrimeiro<T>(itens: T[], data: (x: T) => string | undefined): T[] {
+  const tempo = (x: T) => {
+    const t = Date.parse(data(x) ?? "");
+    return Number.isNaN(t) ? -Infinity : t;
+  };
+  return [...itens].sort((a, b) => tempo(b) - tempo(a));
+}
+
 /** Hoje em São Paulo, AAAA-MM-DD. */
 export function hojeSP(agora = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: FUSO }).format(agora);

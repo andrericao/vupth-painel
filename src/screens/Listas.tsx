@@ -10,7 +10,7 @@ import {
   TAMANHO_PAGINA,
   type Pagina,
 } from "../lib/admin";
-import { dataHora } from "../lib/format";
+import { dataHora, maisNovoPrimeiro } from "../lib/format";
 import { useCarga } from "../lib/useCarga";
 
 export const NOME_PAPEL: Record<string, string> = {
@@ -27,6 +27,7 @@ function Lista<T>({
   chave,
   buscar,
   linha,
+  datado,
   comBusca,
 }: {
   titulo: string;
@@ -34,6 +35,8 @@ function Lista<T>({
   chave: string;
   buscar: (q: string, pagina: number) => Promise<Pagina<T>>;
   linha: (x: T) => { id: string; corpo: React.ReactNode };
+  /** A data de cada linha: a lista sempre aparece do mais novo para o mais antigo. */
+  datado: (x: T) => string | undefined;
   comBusca: boolean;
 }) {
   const [digitado, setDigitado] = useState("");
@@ -74,7 +77,7 @@ function Lista<T>({
             Nada por aqui.
           </Text>
         ) : null}
-        {r.dado?.items.map((x) => {
+        {maisNovoPrimeiro(r.dado?.items ?? [], datado).map((x) => {
           const l = linha(x);
           return (
             <Cartao key={l.id}>{l.corpo}</Cartao>
@@ -94,6 +97,7 @@ export function Usuarios() {
       chave="usuarios"
       comBusca
       buscar={listarUsuarios}
+      datado={(u) => u.created_at}
       linha={(u) => ({
         id: u.id,
         corpo: (
@@ -121,6 +125,7 @@ export function Estabelecimentos() {
       chave="lojas"
       comBusca
       buscar={listarLojas}
+      datado={(l) => l.created_at}
       linha={(l) => ({
         id: l.id,
         corpo: (
@@ -148,6 +153,7 @@ export function Auditoria() {
       chave="auditoria"
       comBusca={false}
       buscar={(_q, pagina) => listarAuditoria(pagina)}
+      datado={(a) => a.created_at}
       linha={(a) => ({
         id: a.id,
         corpo: (

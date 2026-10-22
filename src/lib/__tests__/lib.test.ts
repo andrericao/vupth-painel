@@ -10,7 +10,7 @@ import {
   verificarCodigo,
 } from "../auth";
 import { apiBaseUrl, API_URLS, SESSAO_MS } from "../config";
-import { dataCurta, dataHora, dinheiro, hojeSP } from "../format";
+import { dataCurta, dataHora, dinheiro, hojeSP, maisNovoPrimeiro } from "../format";
 import { lerSessao, liberarSessao, limparSessao, salvarSessao, trocarToken } from "../session";
 
 function resposta(status: number, corpo?: unknown) {
@@ -283,5 +283,18 @@ describe("format", () => {
     expect(dataHora("2026-10-16T12:05:00Z")).toBe("16/10/2026, 09:05");
     expect(hojeSP(new Date("2026-10-16T02:00:00Z"))).toBe("2026-10-15");
     expect(hojeSP()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("maisNovoPrimeiro", () => {
+  it("ordena do mais novo ao mais antigo, sem mexer na lista; sem data vai para o fim", () => {
+    const lista = [
+      { n: "velho", d: "2026-10-01T10:00:00Z" },
+      { n: "sem" },
+      { n: "novo", d: "2026-10-22T10:00:00-03:00" },
+      { n: "meio", d: "2026-10-10" },
+    ] as { n: string; d?: string }[];
+    expect(maisNovoPrimeiro(lista, (x) => x.d).map((x) => x.n)).toEqual(["novo", "meio", "velho", "sem"]);
+    expect(lista[0].n).toBe("velho");
   });
 });

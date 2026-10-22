@@ -4,7 +4,7 @@ import { Text, View } from "react-native";
 import { Aviso, Cartao, Pilulas } from "../components/ui";
 import { Leitura, Numero, Titulo } from "../components/leitura";
 import { lerAlertas } from "../lib/admin";
-import { dataHora, dinheiro } from "../lib/format";
+import { dataHora, dinheiro, maisNovoPrimeiro } from "../lib/format";
 import { useCarga } from "../lib/useCarga";
 
 const NAO_MEDIDO: Record<string, string> = {
@@ -42,7 +42,7 @@ export function Alertas() {
             </View>
             <Cartao titulo={`Pagamentos parados há mais de ${a.payments_stuck_hours} h`}>
               {a.payments_stuck.length ? (
-                a.payments_stuck.map((p) => (
+                maisNovoPrimeiro(a.payments_stuck, (p) => p.finished_at).map((p) => (
                   <Text key={p.attendance_id} className="text-vupth-textPrimary">
                     #{p.attendance_id.slice(0, 8)} · {dinheiro(p.amount)} · concluído em {dataHora(p.finished_at)}
                   </Text>
