@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import {
   Bell,
   CircleDollarSign,
@@ -32,6 +32,9 @@ export const MENU: ItemMenu[] = [
   { rota: "/auditoria", nome: "Auditoria", Icone: ScrollText },
   { rota: "/acessos", nome: "Acessos", Icone: ShieldCheck },
 ];
+
+// O V estilizado em branco sobre transparente (o mesmo do Partner, assets/marca).
+const LOGO = require("../../assets/marca/v-branco-96.png");
 
 export const LARGURA_CELULAR = 768;
 
@@ -96,8 +99,9 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
     <View className="flex-1 flex-row bg-vupth-surface">
       <View className={`justify-between bg-vupth-forest py-4 ${recolhido ? "w-14 items-center px-2" : "w-60 px-4"}`}>
         <View className="gap-1">
-          <View className={`mb-6 ${recolhido ? "items-center" : "px-3"}`}>
-            <Text className="text-xl font-bold text-vupth-green">{recolhido ? "v" : "vupth · painel"}</Text>
+          <View testID="logo" className={`mb-6 flex-row items-center gap-3 py-2 ${recolhido ? "justify-center px-2" : "px-3"}`}>
+            <Image source={LOGO} accessibilityLabel="VUPTH" style={{ width: 22, height: 22 }} />
+            {recolhido ? null : <Text className="text-xl font-bold text-vupth-green">vupth · painel</Text>}
           </View>
           {menu.map((m) => (
             <ItemLateral

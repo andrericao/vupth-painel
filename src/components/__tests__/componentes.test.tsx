@@ -120,6 +120,8 @@ describe("Shell", () => {
     fireEvent.press(screen.getByTestId("recolher-menu"));
     expect(screen.queryByText("André")).toBeNull();
     expect(screen.queryByText("Campanhas")).toBeNull();
+    expect(screen.getByLabelText("VUPTH")).toBeTruthy();
+    expect(screen.queryByText("vupth · painel")).toBeNull();
     expect(screen.getByLabelText("Expandir o menu")).toBeTruthy();
     expect(screen.getByLabelText("Campanhas")).toBeTruthy();
     expect(localStorage.getItem("vupth-painel:menu-recolhido")).toBe("1");
@@ -143,6 +145,8 @@ describe("Shell", () => {
     fireEvent.press(screen.getByTestId("recolher-menu"));
     expect(screen.getByText("Campanhas")).toBeTruthy();
     expect(screen.getByText("Collapse")).toBeTruthy();
+    expect(screen.getByLabelText("VUPTH")).toBeTruthy();
+    expect(screen.getByText("vupth · painel")).toBeTruthy();
     expect(screen.getByLabelText("Recolher o menu").props.accessibilityState).toEqual({ expanded: true });
     expect(localStorage.getItem("vupth-painel:menu-recolhido")).toBe("0");
     localStorage.clear();
