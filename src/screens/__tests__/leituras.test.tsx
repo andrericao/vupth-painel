@@ -185,6 +185,8 @@ describe("Dinheiro: números do período", () => {
       money: din(50),
       by_payment_status: [
         { status: "PAID", count: 3, amount: 90 },
+        { status: "NONE", count: 30, amount: 952.1 },
+        { status: "AWAITING_CONFIRMATION", count: 2, amount: 40 },
         { status: "OUTRO", count: 1, amount: 5 },
       ],
       referral: { credits_total: 20, credits_paid: 5, credits_unpaid: 15 },
@@ -192,6 +194,10 @@ describe("Dinheiro: números do período", () => {
     render(<Dinheiro hoje="2026-10-22" />);
     expect(await screen.findByText(/Pago: 3/)).toBeTruthy();
     expect(screen.getByText(/OUTRO: 1/)).toBeTruthy();
+    expect(screen.getByText(/Sem pagamento registrado: 30/)).toBeTruthy();
+    expect(screen.queryByText(/NONE/)).toBeNull();
+    expect(screen.getByText(/não é valor devido nem pago/)).toBeTruthy();
+    expect(screen.getByText(/Aguardando confirmação: 2/)).toBeTruthy();
     expect(screen.getByText(/a pagar/)).toBeTruthy();
     expect(m.lerFinanceiro).toHaveBeenCalledWith("2026-10-01T00:00:00-03:00", "2026-10-23T00:00:00-03:00");
   });

@@ -154,10 +154,14 @@ function LinhaParte({ nome, p, forte }: { nome: string; p: Parte; forte?: boolea
   );
 }
 
-const NOME_PAGAMENTO: Record<string, string> = {
-  PENDING: "Pendente",
-  AWAITING_CONFIRMATION: "Aguardando confirmação",
-  PAID: "Pago",
+export const NOME_PAGAMENTO: Record<string, { nome: string; dica?: string }> = {
+  PENDING: { nome: "Pendente", dica: "o cliente ainda não pagou" },
+  AWAITING_CONFIRMATION: { nome: "Aguardando confirmação", dica: "o cliente disse que pagou; falta o profissional confirmar" },
+  PAID: { nome: "Pago" },
+  NONE: {
+    nome: "Sem pagamento registrado",
+    dica: "corte concluído sem pagamento no app (anterior ao fluxo de pagamento de 10/10 ou feito fora dele); não é valor devido nem pago",
+  },
 };
 
 /** Os números do período: faturamento, taxas, o que falta receber, multas e a indicação (GET /admin/finance). */
@@ -178,9 +182,14 @@ function Financeiro({ periodo, hoje }: { periodo: Periodo; hoje: string }) {
           </View>
           <Cartao titulo="Pagamentos por situação">
             {r.dado.by_payment_status.map((s) => (
-              <Text key={s.status} className="text-vupth-textPrimary">
-                {NOME_PAGAMENTO[s.status] ?? s.status}: {s.count} · {dinheiro(s.amount)}
-              </Text>
+              <View key={s.status} className="gap-0.5">
+                <Text className="text-vupth-textPrimary">
+                  {NOME_PAGAMENTO[s.status]?.nome ?? s.status}: {s.count} · {dinheiro(s.amount)}
+                </Text>
+                {NOME_PAGAMENTO[s.status]?.dica ? (
+                  <Text className="text-xs text-vupth-textSecondary">{NOME_PAGAMENTO[s.status]?.dica}</Text>
+                ) : null}
+              </View>
             ))}
           </Cartao>
           <Cartao titulo="Indicações (créditos)">
