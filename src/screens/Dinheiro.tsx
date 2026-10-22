@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
-import { Leitura, Numero } from "../components/leitura";
+import { Dica, Leitura, Numero } from "../components/leitura";
 import { Aviso, Botao, Cartao, Pilulas } from "../components/ui";
 import { lerFinanceiro } from "../lib/admin";
 import { useCarga } from "../lib/useCarga";
@@ -86,7 +86,7 @@ export function Dinheiro({ hoje }: { hoje: string }) {
         ]}
       />
 
-      <Financeiro periodo={periodo} hoje={hoje} />
+      <Financeiro periodo={periodo} hoje={hoje} lucro={relatorio} />
 
       <Text className="text-lg font-semibold text-vupth-textPrimary">Lucro do corte e da multa</Text>
       {erro ? (
@@ -135,17 +135,20 @@ function Resumo({ linha }: { linha: LinhaLucro }) {
       <Text className="text-vupth-textSecondary">
         {linha.attendances} {linha.attendances === 1 ? "atendimento" : "atendimentos"}
       </Text>
-      <LinhaParte nome="Corte" p={linha.service} />
-      <LinhaParte nome="Multa" p={linha.penalty} />
-      <LinhaParte nome="Total" p={linha.total} forte />
+      <LinhaParte nome="Corte" p={linha.service} dica={DICA.corte} />
+      <LinhaParte nome="Multa" p={linha.penalty} dica={DICA.multa} />
+      <LinhaParte nome="Total" p={linha.total} dica={DICA.total} forte />
     </View>
   );
 }
 
-function LinhaParte({ nome, p, forte }: { nome: string; p: Parte; forte?: boolean }) {
+function LinhaParte({ nome, p, dica, forte }: { nome: string; p: Parte; dica: string; forte?: boolean }) {
   return (
     <View testID={`parte-${nome}`} className="flex-row flex-wrap items-center justify-between gap-2">
-      <Text className={forte ? "font-semibold text-vupth-textPrimary" : "text-vupth-textPrimary"}>{nome}</Text>
+      <View className="flex-row items-center gap-2">
+        <Text className={forte ? "font-semibold text-vupth-textPrimary" : "text-vupth-textPrimary"}>{nome}</Text>
+        <Dica rotulo={nome} texto={dica} />
+      </View>
       <Text className="text-vupth-textSecondary">
         {dinheiro(p.amount)} · taxa {dinheiro(p.asaas_fee)} ·{" "}
         <Text className="font-semibold text-vupth-forest">lucro {dinheiro(p.app_profit)}</Text>
@@ -154,7 +157,34 @@ function LinhaParte({ nome, p, forte }: { nome: string; p: Parte; forte?: boolea
   );
 }
 
-export const NOME_PAGAMENTO: Record<string, { nome: string; dica?: string }> = {
+export const FIM_DICA = "Atendimentos antigos, sem a divisão gravada, entram só no faturamento bruto.";
+export const DICA = {
+  bruto: "Soma do valor total de todos os atendimentos concluídos do período, pagos ou não.",
+  asaas:
+    "Soma da taxa do gateway embutida no preço (o pior caso entre Pix R$ 1,99 e crédito R$ 0,49 + 2,99%), só dos atendimentos com a divisão gravada.",
+  app: "Soma da parte do app: os 2% mais a sobra do arredondamento do preço X,90 (preço menos o que o profissional recebe menos a taxa do gateway), só dos atendimentos com a divisão gravada. A multa fica à parte.",
+  liquido: "Soma do que cada profissional recebe (o que ele digitou), só dos atendimentos com a divisão gravada.",
+  geradas: "Multas criadas no período.",
+  cobradas: "Multas que já entraram num corte.",
+  corte:
+    "Conta todo atendimento pago com linha no livro, pela data do pagamento (dia de Brasília); sem pagamento não entra. Nos cortes antigos, sem a divisão gravada, a taxa do Asaas é estimada (a maior entre Pix R$ 1,99 e crédito R$ 0,49 + 2,99%) e o lucro é zero de propósito: não inventamos lucro onde a divisão não foi gravada.",
+  multa:
+    "Mesma contagem do corte. Na multa, a taxa do app é o valor da multa menos a taxa extra do gateway (no Pix, zero).",
+  total: "Corte e multa somados.",
+};
+
+/** "X de Y atendimentos com a divisão gravada", só quando falta divisão (Y = concluídos do período, X = os do livro com divisão). */
+export function comDivisao(
+  porSituacao: { count: number }[],
+  lucro: RelatorioLucro | null,
+): string | null {
+  if (!lucro) return null;
+  const y = porSituacao.reduce((t, s) => t + s.count, 0);
+  const x = Math.max(0, lucro.totals.attendances - lucro.services_without_split);
+  return x < y ? `${x} de ${y} atendimentos com a divisão gravada: os outros entram só no faturamento bruto.` : null;
+}
+
+const NOME_PAGAMENTO: Record<string, { nome: string; dica?: string }> = {
   PENDING: { nome: "Pendente", dica: "o cliente ainda não pagou" },
   AWAITING_CONFIRMATION: { nome: "Aguardando confirmação", dica: "o cliente disse que pagou; falta o profissional confirmar" },
   PAID: { nome: "Pago" },
@@ -165,21 +195,27 @@ export const NOME_PAGAMENTO: Record<string, { nome: string; dica?: string }> = {
 };
 
 /** Os números do período: faturamento, taxas, o que falta receber, multas e a indicação (GET /admin/finance). */
-function Financeiro({ periodo, hoje }: { periodo: Periodo; hoje: string }) {
+function Financeiro({ periodo, hoje, lucro }: { periodo: Periodo; hoje: string; lucro: RelatorioLucro | null }) {
   const { from, to } = intervaloDe(periodo, hoje);
   const r = useCarga(`financeiro:${from ?? ""}:${to ?? ""}`, () => lerFinanceiro(from, to));
+  const aviso = r.dado ? comDivisao(r.dado.by_payment_status, lucro) : null;
   return (
     <Leitura carregando={r.carregando} erro={r.erro} onTentar={r.recarregar}>
       {r.dado ? (
         <View className="gap-4">
           <View className="flex-row flex-wrap gap-4">
-            <Numero rotulo="Faturamento bruto" valor={dinheiro(r.dado.money.gross_revenue)} />
-            <Numero rotulo="Taxa do Asaas" valor={dinheiro(r.dado.money.gateway_fee)} />
-            <Numero rotulo="Taxa do app" valor={dinheiro(r.dado.money.app_fee)} />
-            <Numero rotulo="Líquido dos profissionais" valor={dinheiro(r.dado.money.professionals_net)} />
-            <Numero rotulo="Multas geradas" valor={dinheiro(r.dado.money.penalties_generated)} />
-            <Numero rotulo="Multas cobradas" valor={dinheiro(r.dado.money.penalties_charged)} />
+            <Numero rotulo="Faturamento bruto" valor={dinheiro(r.dado.money.gross_revenue)} dica={`${DICA.bruto} ${FIM_DICA}`} />
+            <Numero rotulo="Taxa do Asaas" valor={dinheiro(r.dado.money.gateway_fee)} dica={`${DICA.asaas} ${FIM_DICA}`} />
+            <Numero rotulo="Taxa do app" valor={dinheiro(r.dado.money.app_fee)} dica={`${DICA.app} ${FIM_DICA}`} />
+            <Numero
+              rotulo="Líquido dos profissionais"
+              valor={dinheiro(r.dado.money.professionals_net)}
+              dica={`${DICA.liquido} ${FIM_DICA}`}
+            />
+            <Numero rotulo="Multas geradas" valor={dinheiro(r.dado.money.penalties_generated)} dica={DICA.geradas} />
+            <Numero rotulo="Multas cobradas" valor={dinheiro(r.dado.money.penalties_charged)} dica={DICA.cobradas} />
           </View>
+          {aviso ? <Aviso tom="atencao" texto={aviso} /> : null}
           <Cartao titulo="Pagamentos por situação">
             {r.dado.by_payment_status.map((s) => (
               <View key={s.status} className="gap-0.5">

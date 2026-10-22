@@ -1,10 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 
 import { ApiError } from "../../lib/api";
 import * as A from "../../lib/admin";
 import * as L from "../../lib/lucro";
 import { Alertas } from "../Alertas";
-import { Dinheiro } from "../Dinheiro";
+import { comDivisao, Dinheiro } from "../Dinheiro";
 import { Hoje } from "../Hoje";
 import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
 
@@ -175,6 +175,78 @@ describe("Alertas", () => {
     render(<Alertas />);
     expect(await screen.findByTestId("sem-parados")).toBeTruthy();
     expect(screen.queryByText(/Ainda não medido/)).toBeNull();
+  });
+});
+
+describe("Dinheiro: o i de cada card", () => {
+  const fin = {
+    period: janela,
+    money: din(50),
+    by_payment_status: [{ status: "PAID", count: 146, amount: 4547.8 }],
+    referral: { credits_total: 0, credits_paid: 0, credits_unpaid: 0 },
+  };
+  const parteZero = { amount: 0, asaas_fee: 0, app_profit: 0 };
+  const lucro = (attendances: number, semDivisao: number) => ({
+    period: janela,
+    group_by: "day" as const,
+    items: [],
+    totals: { key: "total", attendances, service: parteZero, penalty: parteZero, total: parteZero },
+    services_without_split: semDivisao,
+  });
+
+  it("toque abre a dica do cálculo, outro toque e o Esc fecham; o fim lembra dos antigos", async () => {
+    const ouvintes: Record<string, (e: { key: string }) => void> = {};
+    (globalThis as { document?: unknown }).document = {
+      addEventListener: (t: string, f: (e: { key: string }) => void) => (ouvintes[t] = f),
+      removeEventListener: (t: string) => delete ouvintes[t],
+    };
+    m.lerFinanceiro.mockResolvedValue(fin);
+    render(<Dinheiro hoje="2026-10-22" />);
+    await screen.findByTestId("numero-Taxa do app");
+    expect(screen.queryByTestId("dica-Taxa do app")).toBeNull();
+    fireEvent.press(screen.getByTestId("info-Taxa do app"));
+    expect(screen.getByText(/os 2% mais a sobra do arredondamento/)).toBeTruthy();
+    expect(within(screen.getByTestId("dica-Taxa do app")).getByText(/Atendimentos antigos, sem a divisão gravada, entram só no faturamento bruto\.$/)).toBeTruthy();
+    expect(screen.getByTestId("info-Taxa do app").props.accessibilityState).toEqual({ expanded: true });
+    act(() => ouvintes.keydown({ key: "a" }));
+    expect(screen.getByTestId("dica-Taxa do app")).toBeTruthy();
+    act(() => ouvintes.keydown({ key: "Escape" }));
+    expect(screen.queryByTestId("dica-Taxa do app")).toBeNull();
+    fireEvent.press(screen.getByTestId("info-Multas geradas"));
+    expect(screen.getByText("Multas criadas no período.")).toBeTruthy();
+    fireEvent(screen.getByTestId("info-Multas geradas"), "blur");
+    expect(screen.queryByTestId("dica-Multas geradas")).toBeNull();
+    fireEvent.press(screen.getByTestId("info-Faturamento bruto"));
+    fireEvent.press(screen.getByTestId("info-Faturamento bruto"));
+    expect(screen.queryByTestId("dica-Faturamento bruto")).toBeNull();
+    delete (globalThis as { document?: unknown }).document;
+  });
+
+  it("os blocos do lucro também têm o i (corte, multa e total)", async () => {
+    m.lerFinanceiro.mockResolvedValue(fin);
+    (L.buscarLucro as jest.Mock).mockResolvedValue({
+      ...lucro(2, 0),
+      items: [{ key: "2026-10-22", attendances: 2, service: parteZero, penalty: parteZero, total: parteZero }],
+    });
+    render(<Dinheiro hoje="2026-10-22" />);
+    await screen.findByText("22/10/2026");
+    fireEvent.press(screen.getAllByTestId("info-Corte")[0]);
+    expect(screen.getByText(/lucro é zero de propósito/)).toBeTruthy();
+  });
+
+  it("comDivisao: sem relatório ou com tudo dividido não avisa; com falta, conta X de Y", () => {
+    const por = [{ count: 100 }, { count: 46 }];
+    expect(comDivisao(por, null)).toBeNull();
+    expect(comDivisao(por, lucro(146, 0))).toBeNull();
+    expect(comDivisao(por, lucro(2, 0))).toMatch(/^2 de 146 atendimentos com a divisão gravada/);
+    expect(comDivisao(por, lucro(2, 5))).toMatch(/^0 de 146/);
+  });
+
+  it("mostra o aviso X de Y junto dos cards quando falta divisão", async () => {
+    m.lerFinanceiro.mockResolvedValue(fin);
+    (L.buscarLucro as jest.Mock).mockResolvedValue(lucro(2, 0));
+    render(<Dinheiro hoje="2026-10-22" />);
+    expect(await screen.findByText(/^2 de 146 atendimentos com a divisão gravada/)).toBeTruthy();
   });
 });
 
