@@ -5,6 +5,7 @@ import * as A from "../../lib/admin";
 import * as L from "../../lib/lucro";
 import { Alertas } from "../Alertas";
 import { comDivisao, Dinheiro } from "../Dinheiro";
+import { Dividas } from "../Dividas";
 import { Hoje } from "../Hoje";
 import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
 import { Multas } from "../Multas";
@@ -23,6 +24,10 @@ jest.mock("../../lib/admin", () => ({
   listarSuporte: jest.fn(),
   listarMultas: jest.fn(),
   listarTestes: jest.fn(),
+  lerDividaReal: jest.fn(),
+  mudarDividaReal: jest.fn(),
+  listarDividas: jest.fn(),
+  quitarDivida: jest.fn(),
   iniciarTeste: jest.fn(),
   tirarDoTeste: jest.fn(),
   finalizarTeste: jest.fn(),
@@ -321,6 +326,68 @@ describe("Estabelecimentos: iniciar e tirar do teste", () => {
     fireEvent.changeText(screen.getByTestId("busca"), "bar");
     fireEvent.press(screen.getByTestId("buscar"));
     await waitFor(() => expect(m.listarLojas).toHaveBeenLastCalledWith("bar", 0));
+  });
+});
+
+describe("Dívidas por fora", () => {
+  const dividas: A.DividaLinha[] = [
+    { professional_id: "aaaaaaaa-1", amount: 10, simulated: true },
+    { professional_id: "bbbbbbbb-2", amount: 20, simulated: false },
+    { professional_id: "cccccccc-3", amount: 35.5, simulated: false },
+  ];
+
+  it("mostra o real e o simulado, reais primeiro; quita só a real, com confirmação", async () => {
+    m.lerDividaReal.mockResolvedValue({ real: false });
+    m.listarDividas.mockResolvedValueOnce(dividas).mockResolvedValue([dividas[0]]);
+    m.quitarDivida.mockResolvedValue({ settled_amount: 35.5 });
+    render(<Dividas />);
+    await screen.findByTestId("divida-cccccccc-3-real");
+    expect(screen.getAllByTestId(/^divida-/).map((n) => n.props.testID)).toEqual([
+      "divida-cccccccc-3-real",
+      "divida-bbbbbbbb-2-real",
+      "divida-aaaaaaaa-1-simulada",
+    ]);
+    expect(screen.getByText("De teste")).toBeTruthy();
+    expect(screen.queryByTestId("quitar-aaaaaaaa-1")).toBeNull();
+    fireEvent.press(screen.getByTestId("quitar-cccccccc-3"));
+    expect(m.quitarDivida).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("confirmar-quitar-cccccccc-3"));
+    await waitFor(() => expect(m.quitarDivida).toHaveBeenCalledWith("cccccccc-3"));
+    expect(await screen.findByText(/Quitado: R\$ 35,50/)).toBeTruthy();
+    expect(await screen.findByTestId("divida-aaaaaaaa-1-simulada")).toBeTruthy();
+    expect(screen.queryByTestId("divida-cccccccc-3-real")).toBeNull();
+  });
+
+  it("o interruptor pede confirmação, liga e desliga, e o i explica", async () => {
+    m.lerDividaReal.mockResolvedValueOnce({ real: false }).mockResolvedValueOnce({ real: true }).mockResolvedValue({ real: false });
+    m.listarDividas.mockResolvedValue([]);
+    m.mudarDividaReal.mockResolvedValue({ real: true });
+    render(<Dividas />);
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+    expect(screen.getByLabelText("Como é calculado: Dívidas novas")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("mudar-flag"));
+    fireEvent.press(screen.getByTestId("cancelar-flag"));
+    expect(m.mudarDividaReal).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("mudar-flag"));
+    expect(screen.getByTestId("aviso-flag")).toHaveTextContent(/passam a ser reais/);
+    fireEvent.press(screen.getByTestId("confirmar-flag"));
+    await waitFor(() => expect(m.mudarDividaReal).toHaveBeenCalledWith(true));
+    expect(await screen.findByText("Reais")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("mudar-flag"));
+    expect(screen.getByTestId("aviso-flag")).toHaveTextContent(/Voltar as dívidas novas para teste/);
+    m.mudarDividaReal.mockResolvedValueOnce({ real: false });
+    fireEvent.press(screen.getByTestId("confirmar-flag"));
+    await waitFor(() => expect(m.mudarDividaReal).toHaveBeenLastCalledWith(false));
+  });
+
+  it("erro ao quitar aparece na tela", async () => {
+    m.lerDividaReal.mockResolvedValue({ real: true });
+    m.listarDividas.mockResolvedValue([dividas[1]]);
+    m.quitarDivida.mockRejectedValueOnce(new ApiError(403, "ADMIN_PERMISSION_DENIED", "negado"));
+    render(<Dividas />);
+    fireEvent.press(await screen.findByTestId("quitar-bbbbbbbb-2"));
+    fireEvent.press(screen.getByTestId("confirmar-quitar-bbbbbbbb-2"));
+    expect(await screen.findByText(/não tem a permissão/)).toBeTruthy();
   });
 });
 
