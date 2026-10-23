@@ -42,8 +42,8 @@ export const MENU: ItemMenu[] = [
   { rota: "/acessos", nome: "Acessos", Icone: ShieldCheck },
 ];
 
-// O V estilizado em branco sobre transparente (o mesmo do Partner, assets/marca).
-const LOGO = require("../../assets/marca/v-branco-96.png");
+// O V da Design (vupth-docs/fontes/design/marca/v-branco.png, 612×512), branco sobre transparente.
+const LOGO = require("../../assets/marca/v-branco.png");
 
 export const LARGURA_CELULAR = 768;
 
@@ -128,7 +128,7 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
         <View className="gap-1">
           <View testID="logo" className={`mb-6 flex-row items-center gap-3 py-2 ${recolhido ? "justify-center px-2" : "px-3"}`}>
             <View className="items-center justify-center rounded-lg bg-vupth-forest p-1.5">
-              <Image source={LOGO} accessibilityLabel="VUPTH" style={{ width: 22, height: 22 }} />
+              <Image source={LOGO} accessibilityLabel="VUPTH" style={{ width: 26, height: 22 }} />
             </View>
             {recolhido ? null : <Text className="text-xl font-heading text-vupth-textPrimary">vupth · painel</Text>}
           </View>
