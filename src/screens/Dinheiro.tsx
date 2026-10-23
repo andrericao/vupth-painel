@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Dica, Leitura, Numero } from "../components/leitura";
-import { Aviso, Botao, Cartao, Pilulas } from "../components/ui";
+import { Aviso, Botao, Carregando, Cartao, Pilulas } from "../components/ui";
 import { lerFinanceiro } from "../lib/admin";
 import { useCarga } from "../lib/useCarga";
 import { ApiError } from "../lib/api";
@@ -98,7 +98,7 @@ export function Dinheiro({ hoje }: { hoje: string }) {
             }} />
         </View>
       ) : null}
-      {!relatorio && !erro ? <ActivityIndicator testID="carregando" color="#163300" /> : null}
+      {!relatorio && !erro ? <Carregando /> : null}
 
       {relatorio ? (
         <>
@@ -151,7 +151,7 @@ function LinhaParte({ nome, p, dica, forte }: { nome: string; p: Parte; dica: st
       </View>
       <Text className="text-vupth-textSecondary">
         {formatarReais(p.amount)} · taxa {formatarReais(p.asaas_fee)} ·{" "}
-        <Text className="font-semibold text-vupth-forest">lucro {formatarReais(p.app_profit)}</Text>
+        <Text className="font-semibold text-vupth-textPrimary">lucro {formatarReais(p.app_profit)}</Text>
       </Text>
     </View>
   );

@@ -82,7 +82,7 @@ export function Suporte() {
                 accessibilityLabel={visto ? "Ocultar o e-mail" : "Mostrar o e-mail"}
                 onPress={() => setEmailsVistos((l) => alternar(l, m.id))}
               >
-                <Text className="text-vupth-forest">
+                <Text className="text-vupth-textPrimary">
                   {visto ? m.email : mascararEmail(m.email)} · {visto ? "ocultar" : "mostrar"}
                 </Text>
               </Pressable>

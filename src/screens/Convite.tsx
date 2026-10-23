@@ -32,8 +32,8 @@ export function Convite({ token, onEntrar }: { token?: string; onEntrar: () => v
   }
 
   return (
-    <View className="flex-1 items-center justify-center bg-vupth-forest p-4">
-      <View className="w-full max-w-sm gap-5 rounded-card bg-white p-8">
+    <View className="flex-1 items-center justify-center bg-vupth-background p-4">
+      <View className="w-full max-w-sm gap-5 rounded-card bg-vupth-surface p-8">
         <Text className="text-2xl font-bold text-vupth-textPrimary">vupth · painel</Text>
         {!token ? (
           <Aviso texto="Este link de convite está incompleto. Abra de novo o link do e-mail ou peça outro convite." />

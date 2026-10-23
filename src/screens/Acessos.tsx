@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
-import { Aviso, Botao, Campo, Cartao, Pilulas } from "../components/ui";
+import { Aviso, Botao, Campo, Carregando, Cartao, Pilulas } from "../components/ui";
 import {
   alternar,
   cancelarConvite,
@@ -74,7 +74,7 @@ export function Acessos() {
           />
         </View>
       ) : null}
-      {!carregado && !erro ? <ActivityIndicator testID="carregando" color="#163300" /> : null}
+      {!carregado && !erro ? <Carregando /> : null}
 
       {carregado ? (
         <>

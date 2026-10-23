@@ -17,6 +17,7 @@ import {
 } from "lucide-react-native";
 
 import { podeVer } from "../lib/admin";
+import { useCor } from "../useCor";
 
 export type ItemMenu = { rota: string; nome: string; Icone: LucideIcon };
 
@@ -67,6 +68,7 @@ type Props = { atual: string; nome: string; permissoes?: string[]; onIr: (rota: 
 export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props) {
   const menu = MENU.filter((m) => podeVer(m.rota, permissoes));
   const { width } = useWindowDimensions();
+  const cor = useCor();
   const celular = width < LARGURA_CELULAR;
   const [recolhido, setRecolhido] = useState(lerRecolhido);
   const alternar = () => {
@@ -76,17 +78,17 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
 
   if (celular) {
     return (
-      <View className="flex-1 bg-vupth-surface">
-        <View className="flex-row items-center justify-between bg-vupth-forest px-4 py-3">
-          <Text className="text-lg font-bold text-vupth-green">vupth · painel</Text>
+      <View className="flex-1 bg-vupth-background">
+        <View className="flex-row items-center justify-between bg-vupth-surface px-4 py-3">
+          <Text className="text-lg font-bold text-vupth-textPrimary">vupth · painel</Text>
           <Pressable testID="sair" accessibilityRole="button" accessibilityLabel="Sair" onPress={onSair}>
-            <LogOut color="#9FE870" size={20} />
+            <LogOut color={cor.textPrimary} size={20} />
           </Pressable>
         </View>
         <ScrollView className="flex-1" contentContainerClassName="gap-4 p-4">
           {children}
         </ScrollView>
-        <ScrollView horizontal className="max-h-16 grow-0 bg-vupth-forest" contentContainerClassName="px-2">
+        <ScrollView horizontal className="max-h-16 grow-0 bg-vupth-surface" contentContainerClassName="px-2">
           {menu.map((m) => (
             <ItemBarra key={m.rota} item={m} marcado={ativo(m.rota, atual)} onPress={() => onIr(m.rota)} />
           ))}
@@ -96,12 +98,14 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
   }
 
   return (
-    <View className="flex-1 flex-row bg-vupth-surface">
-      <View className={`justify-between bg-vupth-forest py-4 ${recolhido ? "w-14 items-center px-2" : "w-60 px-4"}`}>
+    <View className="flex-1 flex-row bg-vupth-background">
+      <View className={`justify-between bg-vupth-surface py-4 ${recolhido ? "w-14 items-center px-2" : "w-60 px-4"}`}>
         <View className="gap-1">
           <View testID="logo" className={`mb-6 flex-row items-center gap-3 py-2 ${recolhido ? "justify-center px-2" : "px-3"}`}>
-            <Image source={LOGO} accessibilityLabel="VUPTH" style={{ width: 22, height: 22 }} />
-            {recolhido ? null : <Text className="text-xl font-bold text-vupth-green">vupth · painel</Text>}
+            <View className="items-center justify-center rounded-lg bg-vupth-forest p-1.5">
+              <Image source={LOGO} accessibilityLabel="VUPTH" style={{ width: 22, height: 22 }} />
+            </View>
+            {recolhido ? null : <Text className="text-xl font-bold text-vupth-textPrimary">vupth · painel</Text>}
           </View>
           {menu.map((m) => (
             <ItemLateral
@@ -117,7 +121,7 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
         </View>
         <View className={`gap-1 ${recolhido ? "items-center" : ""}`}>
           {recolhido ? null : (
-            <Text className="px-3 pb-1 text-xs text-vupth-greenTint" numberOfLines={1}>
+            <Text className="px-3 pb-1 text-xs text-vupth-textSecondary" numberOfLines={1}>
               {nome}
             </Text>
           )}
@@ -153,6 +157,7 @@ type ItemLateralProps = {
 
 /** Item da lateral: ícone e rótulo; recolhida, só o ícone, com o nome numa dica ao passar o mouse ou focar. */
 function ItemLateral({ testID, nome, rotulo, Icone, recolhido, marcado = false, expandido, onPress }: ItemLateralProps) {
+  const cor = useCor();
   const [dica, setDica] = useState(false);
   return (
     <View className="relative">
@@ -166,16 +171,16 @@ function ItemLateral({ testID, nome, rotulo, Icone, recolhido, marcado = false, 
         onHoverOut={() => setDica(false)}
         onFocus={() => setDica(true)}
         onBlur={() => setDica(false)}
-        className={`flex-row items-center gap-3 rounded-full py-2 ${recolhido ? "justify-center px-2" : "px-3"} ${marcado ? "bg-vupth-green" : ""}`}
+        className={`flex-row items-center gap-3 rounded-full py-2 ${recolhido ? "justify-center px-2" : "px-3"} ${marcado ? "bg-vupth-greenTint" : ""}`}
       >
-        <Icone color={marcado ? "#163300" : "#E2F6D5"} size={18} />
+        <Icone color={marcado ? cor.onGreenTint : cor.textPrimary} size={18} />
         {recolhido ? null : (
-          <Text className={marcado ? "font-semibold text-vupth-forest" : "text-vupth-greenTint"}>{rotulo ?? nome}</Text>
+          <Text className={marcado ? "font-semibold text-vupth-onGreenTint" : "text-vupth-textPrimary"}>{rotulo ?? nome}</Text>
         )}
       </Pressable>
       {recolhido && dica ? (
-        <View pointerEvents="none" className="absolute left-12 top-1 z-10 rounded-md bg-vupth-forest px-2 py-1">
-          <Text testID={`dica-${testID}`} className="text-xs text-vupth-greenTint">
+        <View pointerEvents="none" className="absolute left-12 top-1 z-10 rounded-md bg-vupth-surfaceAlt px-2 py-1">
+          <Text testID={`dica-${testID}`} className="text-xs text-vupth-textPrimary">
             {nome}
           </Text>
         </View>
@@ -185,6 +190,7 @@ function ItemLateral({ testID, nome, rotulo, Icone, recolhido, marcado = false, 
 }
 
 function ItemBarra({ item, marcado, onPress }: { item: ItemMenu; marcado: boolean; onPress: () => void }) {
+  const cor = useCor();
   return (
     <Pressable
       testID={`menu-${item.rota}`}
@@ -193,8 +199,8 @@ function ItemBarra({ item, marcado, onPress }: { item: ItemMenu; marcado: boolea
       onPress={onPress}
       className="w-20 items-center justify-center gap-1 py-2"
     >
-      <item.Icone color={marcado ? "#9FE870" : "#E2F6D5"} size={20} />
-      <Text className={`text-[10px] ${marcado ? "font-semibold text-vupth-green" : "text-vupth-greenTint"}`}>
+      <item.Icone color={marcado ? cor.onGreenTint : cor.textPrimary} size={20} />
+      <Text className={`text-[10px] ${marcado ? "font-semibold text-vupth-textPrimary" : "text-vupth-textSecondary"}`}>
         {item.nome}
       </Text>
     </Pressable>

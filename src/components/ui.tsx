@@ -2,6 +2,8 @@ import { useState, type ReactNode } from "react";
 import { Eye, EyeOff } from "lucide-react-native";
 import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 
+import { useCor } from "../useCor";
+
 // Peças do painel, no desenho do app: floresta sobre verde, pílulas, cartões de 20px.
 
 type BotaoProps = {
@@ -15,12 +17,13 @@ type BotaoProps = {
 
 const FUNDO = {
   primario: "bg-vupth-green",
-  secundario: "border border-vupth-border bg-white",
+  secundario: "border border-vupth-border bg-vupth-background",
   perigo: "bg-vupth-dangerTint",
 };
-const TEXTO = { primario: "text-vupth-forest", secundario: "text-vupth-forest", perigo: "text-vupth-danger" };
+const TEXTO = { primario: "text-vupth-onGreen", secundario: "text-vupth-textPrimary", perigo: "text-vupth-danger" };
 
 export function Botao({ titulo, onPress, tipo = "primario", carregando, desabilitado, testID }: BotaoProps) {
+  const cor = useCor();
   const off = desabilitado || carregando;
   return (
     <Pressable
@@ -31,9 +34,15 @@ export function Botao({ titulo, onPress, tipo = "primario", carregando, desabili
       onPress={onPress}
       className={`h-11 flex-row items-center justify-center rounded-full px-5 ${FUNDO[tipo]} ${off ? "opacity-50" : ""}`}
     >
-      {carregando ? <ActivityIndicator color="#163300" /> : <Text className={`font-semibold ${TEXTO[tipo]}`}>{titulo}</Text>}
+      {carregando ? <ActivityIndicator color={tipo === "primario" ? cor.onGreen : cor.textPrimary} /> : <Text className={`font-semibold ${TEXTO[tipo]}`}>{titulo}</Text>}
     </Pressable>
   );
+}
+
+/** Indicador de carregamento das leituras. */
+export function Carregando() {
+  const cor = useCor();
+  return <ActivityIndicator testID="carregando" color={cor.textPrimary} />;
 }
 
 type CampoProps = {
@@ -64,6 +73,7 @@ export function Campo({
   onEnviar,
   testID,
 }: CampoProps) {
+  const cor = useCor();
   const [visivel, setVisivel] = useState(false);
   const oculta = !!senha && !visivel;
   return (
@@ -78,13 +88,13 @@ export function Campo({
           onSubmitEditing={onEnviar}
           returnKeyType={onEnviar ? "go" : undefined}
           placeholder={placeholder}
-          placeholderTextColor="#6B706B"
+          placeholderTextColor={cor.textPlaceholder}
           secureTextEntry={oculta}
           maxLength={maxLength}
           editable={!desabilitado}
           className={`h-11 rounded-xl border px-3 text-vupth-textPrimary ${senha ? "pr-12" : ""} ${
             erro ? "border-vupth-danger" : "border-vupth-border"
-          } ${desabilitado ? "bg-vupth-surface" : "bg-white"}`}
+          } ${desabilitado ? "bg-vupth-surface" : "bg-vupth-background"}`}
         />
         {senha ? (
           <Pressable
@@ -94,7 +104,7 @@ export function Campo({
             onPress={() => setVisivel((v) => !v)}
             className="absolute right-3"
           >
-            {visivel ? <EyeOff size={20} color="#163300" /> : <Eye size={20} color="#163300" />}
+            {visivel ? <EyeOff size={20} color={cor.textPrimary} /> : <Eye size={20} color={cor.textPrimary} />}
           </Pressable>
         ) : null}
       </View>
@@ -132,10 +142,10 @@ export function Pilulas<T extends string>({
           accessibilityState={{ selected: marcado(o.valor) }}
           onPress={() => onChange(o.valor)}
           className={`rounded-full border px-4 py-2 ${
-            marcado(o.valor) ? "border-vupth-forest bg-vupth-forest" : "border-vupth-border bg-white"
+            marcado(o.valor) ? "border-vupth-greenTint bg-vupth-greenTint" : "border-vupth-border bg-vupth-background"
           }`}
         >
-          <Text className={marcado(o.valor) ? "text-white" : "text-vupth-textPrimary"}>{o.rotulo}</Text>
+          <Text className={marcado(o.valor) ? "text-vupth-onGreenTint" : "text-vupth-textPrimary"}>{o.rotulo}</Text>
         </Pressable>
       ))}
     </View>
@@ -143,8 +153,8 @@ export function Pilulas<T extends string>({
 }
 
 const COR_ESTADO = {
-  ok: "bg-vupth-greenTint text-vupth-forest",
-  atencao: "bg-vupth-amberTint text-vupth-amber",
+  ok: "bg-vupth-greenTint text-vupth-onGreenTint",
+  atencao: "bg-vupth-accentPeach text-vupth-onAccentPeach",
   erro: "bg-vupth-dangerTint text-vupth-danger",
   neutro: "bg-vupth-surface text-vupth-textSecondary",
 };
@@ -161,7 +171,7 @@ export function Estado({ texto, tom }: { texto: string; tom: keyof typeof COR_ES
 
 export function Cartao({ children, titulo, acao }: { children: ReactNode; titulo?: string; acao?: ReactNode }) {
   return (
-    <View className="gap-4 rounded-card border border-vupth-border bg-white p-5">
+    <View className="gap-4 rounded-card bg-vupth-surface p-5">
       {titulo || acao ? (
         <View className="flex-row items-center justify-between gap-3">
           {titulo ? <Text className="text-base font-semibold text-vupth-textPrimary">{titulo}</Text> : <View />}
@@ -176,9 +186,9 @@ export function Cartao({ children, titulo, acao }: { children: ReactNode; titulo
 /** Barra de vagas: "37 de 50". */
 export function Barra({ fracao, testID }: { fracao: number; testID?: string }) {
   const pct = Math.round(Math.max(0, Math.min(1, fracao)) * 100);
-  const cor = pct >= 80 ? "bg-vupth-amber" : "bg-vupth-forest";
+  const cor = pct >= 80 ? "bg-vupth-danger" : "bg-vupth-green";
   return (
-    <View testID={testID} className="h-2 w-full overflow-hidden rounded-full bg-vupth-surface">
+    <View testID={testID} className="h-2 w-full overflow-hidden rounded-full bg-vupth-surfaceAlt">
       <View className={`h-2 rounded-full ${cor}`} style={{ width: `${pct}%` }} />
     </View>
   );
@@ -189,9 +199,9 @@ export function Aviso({ texto, tom = "erro" }: { texto: string; tom?: "erro" | "
     <View
       accessible
       accessibilityRole="alert"
-      className={`rounded-xl px-4 py-3 ${tom === "erro" ? "bg-vupth-dangerTint" : "bg-vupth-amberTint"}`}
+      className={`rounded-xl px-4 py-3 ${tom === "erro" ? "bg-vupth-dangerTint" : "bg-vupth-accentPeach"}`}
     >
-      <Text className={tom === "erro" ? "text-vupth-danger" : "text-vupth-amber"}>{texto}</Text>
+      <Text className={tom === "erro" ? "text-vupth-danger" : "text-vupth-onAccentPeach"}>{texto}</Text>
     </View>
   );
 }

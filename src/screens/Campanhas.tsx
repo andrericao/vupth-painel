@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
-import { Aviso, Barra, Botao, Cartao, Estado, Pilulas } from "../components/ui";
+import { Aviso, Barra, Botao, Carregando, Cartao, Estado, Pilulas } from "../components/ui";
 import {
   descreverBeneficio,
   comoParticipar,
@@ -152,7 +152,7 @@ export function Campanhas({ hoje }: { hoje: string }) {
           <Botao testID="tentar" titulo="Tentar de novo" tipo="secundario" onPress={carregar} />
         </View>
       ) : null}
-      {!carregado && !erro ? <ActivityIndicator testID="carregando" color="#163300" /> : null}
+      {!carregado && !erro ? <Carregando /> : null}
       {carregado && !visiveis.length ? (
         <Text testID="vazio" className="text-vupth-textSecondary">
           {campanhas.length ? "Nenhuma campanha neste filtro." : "Nenhuma campanha ainda. A primeira nasce aqui (DEC-69)."}
@@ -202,7 +202,7 @@ function LinhaCampanha({ c, nova, onEditar, onMudou, onErro }: LinhaProps) {
   }
 
   return (
-    <View testID={`campanha-${c.id}`} className={`gap-3 rounded-card border bg-white p-5 ${nova ? "border-vupth-green" : "border-vupth-border"}`}>
+    <View testID={`campanha-${c.id}`} className={`gap-3 rounded-card border bg-vupth-surface p-5 ${nova ? "border-vupth-green" : "border-vupth-border"}`}>
       <View className="flex-row flex-wrap items-center justify-between gap-2">
         <Text className="text-lg font-semibold text-vupth-textPrimary">{c.name}</Text>
         {nova ? <Estado tom="ok" texto="Criada agora" /> : null}

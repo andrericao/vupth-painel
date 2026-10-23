@@ -61,7 +61,7 @@ function Lista<T>({
           <Text
             testID="buscar"
             accessibilityRole="button"
-            className="pb-3 font-semibold text-vupth-forest"
+            className="pb-3 font-semibold text-vupth-textPrimary"
             onPress={() => {
               setPagina(0);
               setQ(digitado);

@@ -1,29 +1,27 @@
 /** @type {import('tailwindcss').Config} */
-// Cores do app (vupth-partner/tailwind.config.js, tokens `vupth`): o painel fala a mesma identidade.
+// Cores: src/tema.js, que espelha o tokens.json da Design (claro e escuro). O className usa o nome do token.
+const plugin = require("tailwindcss/plugin");
+const { CORES } = require("./src/tema");
+
+const variaveis = (tema) => Object.fromEntries(Object.entries(tema).map(([k, v]) => [`--vupth-${k}`, v]));
+
 module.exports = {
   content: ["./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      borderRadius: { card: "20px" },
+      borderRadius: { card: "20px", hero: "24px" },
       colors: {
-        vupth: {
-          green: "#9FE870",
-          forest: "#163300",
-          forestSoft: "#223D0D",
-          greenTint: "#E2F6D5",
-          surface: "#F3F5F1",
-          textPrimary: "#163300",
-          textSecondary: "#454745",
-          textPlaceholder: "#6B706B",
-          border: "#D7DDD3",
-          danger: "#B3261E",
-          dangerTint: "#FCE8E6",
-          amber: "#8A5A00",
-          amberTint: "#FFF1D6",
-        },
+        vupth: Object.fromEntries(Object.keys(CORES.claro).map((k) => [k, `var(--vupth-${k})`])),
       },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addBase }) =>
+      addBase({
+        ":root": variaveis(CORES.claro),
+        "@media (prefers-color-scheme: dark)": { ":root": variaveis(CORES.escuro) },
+      }),
+    ),
+  ],
 };
