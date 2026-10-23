@@ -10,6 +10,7 @@ import { Hoje } from "../Hoje";
 import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
 import { Multas } from "../Multas";
 import { Premios } from "../Premios";
+import { Saldo } from "../Saldo";
 import { Suporte } from "../Suporte";
 import { Testes } from "../Testes";
 
@@ -31,6 +32,7 @@ jest.mock("../../lib/admin", () => ({
   quitarDivida: jest.fn(),
   listarPremiosPendentes: jest.fn(),
   liberarPremio: jest.fn(),
+  lerSaldoDoApp: jest.fn(),
   iniciarTeste: jest.fn(),
   tirarDoTeste: jest.fn(),
   finalizarTeste: jest.fn(),
@@ -691,5 +693,48 @@ describe("Prêmios do compartilhe e ganhe", () => {
     m.listarPremiosPendentes.mockResolvedValue([]);
     render(<Premios />);
     expect(await screen.findByTestId("vazio")).toBeTruthy();
+  });
+});
+
+describe("Saldo do app", () => {
+  const base: A.SaldoDoApp = {
+    owed_total: 100,
+    pending_release_total: 20,
+    asaas_connected: true,
+    app_balance: 60,
+    deposit_needed: 40,
+    beneficiaries: [
+      { beneficiary_id: "b1", beneficiary_name: "Ana", amount: 30, credits: 1 },
+      { beneficiary_id: "bbbbbbbb-2", amount: 70, credits: 4 },
+    ],
+  };
+
+  it("destaca o depósito e lista o maior primeiro", async () => {
+    m.lerSaldoDoApp.mockResolvedValue(base);
+    render(<Saldo />);
+    expect(await screen.findByTestId("depositar")).toBeTruthy();
+    expect(screen.getByText("R$ 40,00")).toBeTruthy();
+    expect(screen.getAllByTestId(/^pessoa-/).map((n) => n.props.testID)).toEqual(["pessoa-bbbbbbbb-2", "pessoa-b1"]);
+    expect(screen.getByText("Pessoa #bbbbbbbb")).toBeTruthy();
+    expect(screen.getByText("1 indicação")).toBeTruthy();
+  });
+
+  it("saldo que cobre a dívida não pede depósito", async () => {
+    m.lerSaldoDoApp.mockResolvedValue({ ...base, app_balance: 100, deposit_needed: 0, beneficiaries: [] });
+    render(<Saldo />);
+    expect(await screen.findByTestId("sem-deposito")).toBeTruthy();
+    expect(screen.queryByTestId("depositar")).toBeNull();
+    expect(screen.getByTestId("vazio")).toBeTruthy();
+  });
+
+  it("sem Asaas mostra só o devedor; com erro do Asaas avisa", async () => {
+    m.lerSaldoDoApp.mockResolvedValueOnce({ owed_total: 10, pending_release_total: 0, asaas_connected: false, beneficiaries: [] });
+    const { unmount } = render(<Saldo />);
+    expect(await screen.findByTestId("sem-asaas")).toBeTruthy();
+    expect(screen.queryByTestId("depositar")).toBeNull();
+    unmount();
+    m.lerSaldoDoApp.mockResolvedValueOnce({ ...base, asaas_connected: false, asaas_error: "fora do ar" });
+    render(<Saldo />);
+    expect(await screen.findByText(/fora do ar/)).toBeTruthy();
   });
 });
