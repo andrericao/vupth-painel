@@ -183,12 +183,19 @@ describe("paraRequest", () => {
       weekdays: "MONDAY,FRIDAY",
       max_redemptions: null,
       new_clients_only: false,
+      benefit_base: "WITH_FEE",
       referral_professional_percent: null,
       referral_owner_percent: null,
       referral_scope: null,
       payout_period: null,
       payout_day: null,
     });
+  });
+
+  it("a base do valor (com ou sem taxa) vai só no desconto", () => {
+    expect(paraRequest(valido({ baseDoValor: "WITHOUT_FEE" })).benefit_base).toBe("WITHOUT_FEE");
+    expect(paraRequest(valido({ beneficio: "taxa-zero", baseDoValor: "WITHOUT_FEE" })).benefit_base).toBeNull();
+    expect(paraRequest(link()).benefit_base).toBeNull();
   });
 
   it("cupom em %, privado, com limite e público", () => {
@@ -205,6 +212,10 @@ describe("paraRequest", () => {
 });
 
 describe("formularioDe", () => {
+  it("a base do valor volta da campanha", () => {
+    expect(formularioDe(campanha({ benefit_base: "WITHOUT_FEE" })).baseDoValor).toBe("WITHOUT_FEE");
+  });
+
   it("volta da campanha para o formulário", () => {
     expect(formularioDe(campanha({ weekdays: "MONDAY,TUESDAY", max_redemptions: 50, code: "X", description: "d", audience: "OWNER" }))).toEqual({
       modo: "cupom",
@@ -214,6 +225,7 @@ describe("formularioDe", () => {
       codigo: "X",
       publico: "OWNER",
       beneficio: "reais",
+      baseDoValor: "WITH_FEE",
       valor: "10,00",
       inicio: "16/10/2026",
       fim: "31/10/2026",

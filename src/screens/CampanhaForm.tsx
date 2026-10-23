@@ -10,6 +10,8 @@ import {
   avisoBeneficio,
   criarCampanha,
   DIA_DA_SEMANA,
+  DICA_BASE,
+  NOME_BASE,
   DIAS,
   editarCampanha,
   formularioDe,
@@ -19,6 +21,7 @@ import {
   NOME_QUEM_CONTA,
   paraRequest,
   validar,
+  type BaseDoValor,
   type Beneficio,
   type Campaign,
   type CampaignAudience,
@@ -152,6 +155,19 @@ export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCanc
             placeholder={ehPercentual ? "0" : "0,00"}
           />
         ) : null}
+        {ehLink || f.beneficio === "taxa-zero" ? null : (
+          <>
+            <Pilulas<BaseDoValor>
+              testID="base"
+              valor={f.baseDoValor}
+              onChange={muda("baseDoValor")}
+              opcoes={(Object.keys(NOME_BASE) as BaseDoValor[]).map((b) => ({ valor: b, rotulo: NOME_BASE[b] }))}
+            />
+            <Text testID="dica-base" className="text-sm text-vupth-textSecondary">
+              {DICA_BASE}
+            </Text>
+          </>
+        )}
         {ehLink ? <ParametrosBonificacao f={f} erros={erros} muda={muda} /> : null}
       </Cartao>
 

@@ -412,6 +412,26 @@ describe("Campanhas", () => {
     fireEvent.press(screen.getByTestId("salvar"));
     expect(await screen.findByText("Lançamento 2")).toBeTruthy();
     expect(m.editarCampanha).toHaveBeenCalledWith("c1", expect.objectContaining({ name: "Lançamento" }));
+  }, 20000);
+
+  it("campanha de desconto escolhe valor com ou sem taxa; taxa zero e link não mostram a escolha", async () => {
+    m.listarCampanhas.mockResolvedValue([]);
+    m.criarCampanha.mockResolvedValue(campanha({ id: "n1", name: "Nova" }));
+    render(<Campanhas hoje="2026-10-16" />);
+    fireEvent.press(await screen.findByTestId("criar"));
+    expect(screen.getByTestId("dica-base")).toHaveTextContent(/cupons não se acumulam/);
+    fireEvent.press(screen.getByTestId("base-WITHOUT_FEE"));
+    fireEvent.changeText(screen.getByTestId("nome"), "Nova");
+    fireEvent.changeText(screen.getByTestId("valor"), "5");
+    fireEvent.changeText(screen.getByTestId("fim"), "31102026");
+    fireEvent.press(screen.getByTestId("salvar"));
+    await screen.findByText("Nova");
+    expect(m.criarCampanha).toHaveBeenCalledWith(expect.objectContaining({ benefit_base: "WITHOUT_FEE" }));
+    fireEvent.press(screen.getByTestId("criar"));
+    fireEvent.press(screen.getByTestId("beneficio-taxa-zero"));
+    expect(screen.queryByTestId("base")).toBeNull();
+    fireEvent.press(screen.getByTestId("modo-link"));
+    expect(screen.queryByTestId("base")).toBeNull();
   });
 
   it("se a lista ainda não veio, criar funciona igual", async () => {

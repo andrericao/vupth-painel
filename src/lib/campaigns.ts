@@ -21,6 +21,9 @@ type Bonificacao<Vazio> = {
   payout_day: number | Vazio;
 };
 
+/** Sobre qual valor vale o limite do desconto: o preço que o cliente vê (com taxa) ou o que o profissional recebe (sem taxa). */
+export type BaseDoValor = "WITH_FEE" | "WITHOUT_FEE";
+
 export type Campaign = {
   id: string;
   name: string;
@@ -40,6 +43,7 @@ export type Campaign = {
   active: boolean;
   status: CampaignStatus;
   benefit?: CampaignBenefit;
+  benefit_base?: BaseDoValor;
 } & Partial<Bonificacao<never>>;
 
 export type CampaignRequest = {
@@ -56,6 +60,7 @@ export type CampaignRequest = {
   weekdays: string | null;
   max_redemptions: number | null;
   new_clients_only: boolean;
+  benefit_base: BaseDoValor | null;
 } & Bonificacao<null>;
 
 export const listarCampanhas = () => api<Campaign[]>("/admin/campaigns");
@@ -104,6 +109,7 @@ export type Formulario = {
   codigo: string;
   publico: CampaignAudience | "TODOS";
   beneficio: Beneficio;
+  baseDoValor: BaseDoValor;
   valor: string;
   inicio: string; // dd/mm/aaaa (a máscara do campo)
   fim: string; // dd/mm/aaaa
@@ -126,6 +132,7 @@ export function formularioVazio(hoje: string): Formulario {
     codigo: "",
     publico: "TODOS",
     beneficio: "reais",
+    baseDoValor: "WITH_FEE",
     valor: "",
     inicio: isoParaBr(hoje),
     fim: "",
@@ -155,6 +162,7 @@ export function formularioDe(c: Campaign): Formulario {
     codigo: c.code ?? "",
     publico: c.audience ?? "TODOS",
     beneficio: c.type === "FEE_WAIVER" ? "taxa-zero" : c.value_percent != null ? "porcento" : "reais",
+    baseDoValor: c.benefit_base ?? "WITH_FEE",
     valor: c.value_percent != null ? String(c.value_percent).replace(".", ",") : c.value_amount != null ? valorParaCampo(c.value_amount) : "",
     inicio: isoParaBr(diaSP(c.starts_at)),
     fim: isoParaBr(diaSP(c.ends_at)),
@@ -243,6 +251,7 @@ export function paraRequest(f: Formulario): CampaignRequest {
     weekdays: f.dias.length ? DIAS.filter((d) => f.dias.includes(d)).join(",") : null,
     max_redemptions: f.limite.trim() ? Number(f.limite.trim()) : null,
     new_clients_only: f.soClientesNovos,
+    benefit_base: tipo === "DISCOUNT" ? f.baseDoValor : null,
     referral_professional_percent: tipo === "REFERRAL_BONUS" ? numero(f.pctProfissional) : null,
     referral_owner_percent: tipo === "REFERRAL_BONUS" ? numero(f.pctDono) : null,
     referral_scope: tipo === "REFERRAL_BONUS" && f.quemConta ? f.quemConta : null,
@@ -252,6 +261,10 @@ export function paraRequest(f: Formulario): CampaignRequest {
 }
 
 /* ───────── Leitura ───────── */
+
+export const NOME_BASE: Record<BaseDoValor, string> = { WITH_FEE: "Valor com taxa", WITHOUT_FEE: "Valor sem taxa" };
+export const DICA_BASE =
+  "Com taxa: o limite é o preço que o cliente vê. Sem taxa: o limite é o que o profissional recebe. O desconto nunca passa do valor do corte e os cupons não se acumulam.";
 
 export const NOME_STATUS: Record<CampaignStatus, string> = {
   SCHEDULED: "Agendada",
