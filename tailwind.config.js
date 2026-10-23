@@ -11,6 +11,25 @@ module.exports = {
   theme: {
     extend: {
       borderRadius: { card: "20px", hero: "24px" },
+      // Fontes do tokens.json (tipografia.familia); o nome é a chave do useFonts em app/_layout.tsx.
+      // A ordem importa: a última classe de família vence (heading e display sobrepõem body).
+      fontFamily: {
+        body: ["Inter_400Regular"],
+        mono: ["DMMono_500Medium"],
+        heading: ["Archivo_700Bold"],
+        display: ["Archivo_800ExtraBold"],
+      },
+      // Escala do tokens.json (tipografia.escala); base e 2xl/3xl ficam nos mesmos tamanhos de md, xxl e xxxl.
+      fontSize: {
+        xs: ["12px", { lineHeight: "16px" }],
+        sm: ["14px", { lineHeight: "20px" }],
+        md: ["16px", { lineHeight: "24px" }],
+        base: ["16px", { lineHeight: "24px" }],
+        lg: ["18px", { lineHeight: "26px" }],
+        xl: ["22px", { lineHeight: "28px", letterSpacing: "-0.5px" }],
+        "2xl": ["28px", { lineHeight: "34px", letterSpacing: "-1px" }],
+        "3xl": ["34px", { lineHeight: "40px", letterSpacing: "-1.5px" }],
+      },
       colors: {
         vupth: Object.fromEntries(Object.keys(CORES.claro).map((k) => [k, `var(--vupth-${k})`])),
       },

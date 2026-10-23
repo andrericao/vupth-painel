@@ -62,7 +62,7 @@ export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCanc
 
   return (
     <View className="gap-5">
-      <Text className="text-2xl font-bold text-vupth-textPrimary">{campanha ? "Editar campanha" : "Criar campanha"}</Text>
+      <Text className="text-2xl font-heading text-vupth-textPrimary">{campanha ? "Editar campanha" : "Criar campanha"}</Text>
 
       <Cartao titulo="1. Cupom ou link">
         <Pilulas<Modo>
@@ -197,7 +197,7 @@ type Muda = <K extends keyof Formulario>(k: K) => (v: Formulario[K]) => void;
 function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: ReturnType<typeof validar>; muda: Muda }) {
   return (
     <View testID="parametros-bonificacao" className="gap-3 rounded-xl border border-dashed border-vupth-border p-4">
-      <Text className="text-sm font-semibold text-vupth-textPrimary">Bonificação</Text>
+      <Text className="text-sm font-heading text-vupth-textPrimary">Bonificação</Text>
       <View className="flex-row flex-wrap gap-4">
         <View className="min-w-[180px] flex-1">
           <Campo

@@ -80,7 +80,7 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
     return (
       <View className="flex-1 bg-vupth-background">
         <View className="flex-row items-center justify-between bg-vupth-surface px-4 py-3">
-          <Text className="text-lg font-bold text-vupth-textPrimary">vupth · painel</Text>
+          <Text className="text-lg font-heading text-vupth-textPrimary">vupth · painel</Text>
           <Pressable testID="sair" accessibilityRole="button" accessibilityLabel="Sair" onPress={onSair}>
             <LogOut color={cor.textPrimary} size={20} />
           </Pressable>
@@ -105,7 +105,7 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
             <View className="items-center justify-center rounded-lg bg-vupth-forest p-1.5">
               <Image source={LOGO} accessibilityLabel="VUPTH" style={{ width: 22, height: 22 }} />
             </View>
-            {recolhido ? null : <Text className="text-xl font-bold text-vupth-textPrimary">vupth · painel</Text>}
+            {recolhido ? null : <Text className="text-xl font-heading text-vupth-textPrimary">vupth · painel</Text>}
           </View>
           {menu.map((m) => (
             <ItemLateral
@@ -175,7 +175,7 @@ function ItemLateral({ testID, nome, rotulo, Icone, recolhido, marcado = false, 
       >
         <Icone color={marcado ? cor.onGreenTint : cor.textPrimary} size={18} />
         {recolhido ? null : (
-          <Text className={marcado ? "font-semibold text-vupth-onGreenTint" : "text-vupth-textPrimary"}>{rotulo ?? nome}</Text>
+          <Text className={marcado ? "font-heading text-vupth-onGreenTint" : "text-vupth-textPrimary"}>{rotulo ?? nome}</Text>
         )}
       </Pressable>
       {recolhido && dica ? (
@@ -200,7 +200,7 @@ function ItemBarra({ item, marcado, onPress }: { item: ItemMenu; marcado: boolea
       className="w-20 items-center justify-center gap-1 py-2"
     >
       <item.Icone color={marcado ? cor.onGreenTint : cor.textPrimary} size={20} />
-      <Text className={`text-[10px] ${marcado ? "font-semibold text-vupth-textPrimary" : "text-vupth-textSecondary"}`}>
+      <Text className={`text-[10px] ${marcado ? "font-heading text-vupth-textPrimary" : "text-vupth-textSecondary"}`}>
         {item.nome}
       </Text>
     </Pressable>

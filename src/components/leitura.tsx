@@ -31,7 +31,7 @@ export function Leitura({
 export function Titulo({ titulo, resumo }: { titulo: string; resumo: string }) {
   return (
     <View className="gap-1">
-      <Text className="text-2xl font-bold text-vupth-textPrimary">{titulo}</Text>
+      <Text className="text-2xl font-display text-vupth-textPrimary">{titulo}</Text>
       <Text className="text-vupth-textSecondary">{resumo}</Text>
     </View>
   );
@@ -97,7 +97,7 @@ export function Numero({
         <Text className="text-xs uppercase text-vupth-textSecondary">{rotulo}</Text>
         {dica ? <Dica rotulo={rotulo} texto={dica} /> : null}
       </View>
-      <Text className="text-3xl font-bold text-vupth-textPrimary">{valor}</Text>
+      <Text className="text-3xl font-mono text-vupth-textPrimary">{valor}</Text>
       {variacao ? <Text className="text-xs text-vupth-textSecondary">{variacao} vs. semana passada</Text> : null}
     </View>
   );

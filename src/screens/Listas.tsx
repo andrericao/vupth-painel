@@ -61,7 +61,7 @@ function Lista<T>({
           <Text
             testID="buscar"
             accessibilityRole="button"
-            className="pb-3 font-semibold text-vupth-textPrimary"
+            className="pb-3 font-heading text-vupth-textPrimary"
             onPress={() => {
               setPagina(0);
               setQ(digitado);
@@ -103,7 +103,7 @@ export function Usuarios() {
         corpo: (
           <View className="gap-1">
             <View className="flex-row flex-wrap items-center justify-between gap-2">
-              <Text className="text-base font-semibold text-vupth-textPrimary">{u.name}</Text>
+              <Text className="text-base font-heading text-vupth-textPrimary">{u.name}</Text>
               {u.deleted ? <Estado tom="erro" texto="Excluído" /> : <Estado tom={u.active ? "ok" : "atencao"} texto={u.active ? "Ativo" : "Inativo"} />}
             </View>
             <Text className="text-vupth-textSecondary">{u.email}</Text>
@@ -131,7 +131,7 @@ export function Estabelecimentos() {
         corpo: (
           <View className="gap-1">
             <View className="flex-row flex-wrap items-center justify-between gap-2">
-              <Text className="text-base font-semibold text-vupth-textPrimary">{l.name}</Text>
+              <Text className="text-base font-heading text-vupth-textPrimary">{l.name}</Text>
               <Estado tom={l.open_status === "OPEN" ? "ok" : "neutro"} texto={l.open_status === "OPEN" ? "Aberta" : "Fechada"} />
             </View>
             <Text className="text-vupth-textSecondary">
@@ -159,7 +159,7 @@ export function Auditoria() {
         corpo: (
           <View className="gap-1">
             <View className="flex-row flex-wrap items-center justify-between gap-2">
-              <Text className="font-semibold text-vupth-textPrimary">
+              <Text className="font-heading text-vupth-textPrimary">
                 {a.method} {a.path}
                 {a.query ? `?${a.query}` : ""}
               </Text>

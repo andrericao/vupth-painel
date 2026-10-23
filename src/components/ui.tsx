@@ -34,7 +34,7 @@ export function Botao({ titulo, onPress, tipo = "primario", carregando, desabili
       onPress={onPress}
       className={`h-11 flex-row items-center justify-center rounded-full px-5 ${FUNDO[tipo]} ${off ? "opacity-50" : ""}`}
     >
-      {carregando ? <ActivityIndicator color={tipo === "primario" ? cor.onGreen : cor.textPrimary} /> : <Text className={`font-semibold ${TEXTO[tipo]}`}>{titulo}</Text>}
+      {carregando ? <ActivityIndicator color={tipo === "primario" ? cor.onGreen : cor.textPrimary} /> : <Text className={`font-heading ${TEXTO[tipo]}`}>{titulo}</Text>}
     </Pressable>
   );
 }
@@ -164,7 +164,7 @@ export function Estado({ texto, tom }: { texto: string; tom: keyof typeof COR_ES
   const [fundo, cor] = COR_ESTADO[tom].split(" ");
   return (
     <View className={`self-start rounded-full px-3 py-1 ${fundo}`}>
-      <Text className={`text-xs font-semibold ${cor}`}>{texto}</Text>
+      <Text className={`text-xs font-heading ${cor}`}>{texto}</Text>
     </View>
   );
 }
@@ -174,7 +174,7 @@ export function Cartao({ children, titulo, acao }: { children: ReactNode; titulo
     <View className="gap-4 rounded-card bg-vupth-surface p-5">
       {titulo || acao ? (
         <View className="flex-row items-center justify-between gap-3">
-          {titulo ? <Text className="text-base font-semibold text-vupth-textPrimary">{titulo}</Text> : <View />}
+          {titulo ? <Text className="text-base font-heading text-vupth-textPrimary">{titulo}</Text> : <View />}
           {acao}
         </View>
       ) : null}

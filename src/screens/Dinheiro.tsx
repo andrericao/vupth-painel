@@ -53,7 +53,7 @@ export function Dinheiro({ hoje }: { hoje: string }) {
   return (
     <View className="gap-5">
       <View className="gap-1">
-        <Text className="text-2xl font-bold text-vupth-textPrimary">Dinheiro</Text>
+        <Text className="text-2xl font-heading text-vupth-textPrimary">Dinheiro</Text>
         <Text className="text-vupth-textSecondary">
           Lucro do app, separado em corte e multa. A taxa do Asaas é a atribuída a cada parte. O dia é o da loja.
         </Text>
@@ -88,7 +88,7 @@ export function Dinheiro({ hoje }: { hoje: string }) {
 
       <Financeiro periodo={periodo} hoje={hoje} lucro={relatorio} />
 
-      <Text className="text-lg font-semibold text-vupth-textPrimary">Lucro do corte e da multa</Text>
+      <Text className="text-lg font-heading text-vupth-textPrimary">Lucro do corte e da multa</Text>
       {erro ? (
         <View className="items-start gap-3">
           <Aviso texto={erro} />
@@ -146,12 +146,12 @@ function LinhaParte({ nome, p, dica, forte }: { nome: string; p: Parte; dica: st
   return (
     <View testID={`parte-${nome}`} className="flex-row flex-wrap items-center justify-between gap-2">
       <View className="flex-row items-center gap-2">
-        <Text className={forte ? "font-semibold text-vupth-textPrimary" : "text-vupth-textPrimary"}>{nome}</Text>
+        <Text className={forte ? "font-heading text-vupth-textPrimary" : "text-vupth-textPrimary"}>{nome}</Text>
         <Dica rotulo={nome} texto={dica} />
       </View>
       <Text className="text-vupth-textSecondary">
         {formatarReais(p.amount)} · taxa {formatarReais(p.asaas_fee)} ·{" "}
-        <Text className="font-semibold text-vupth-textPrimary">lucro {formatarReais(p.app_profit)}</Text>
+        <Text className="font-heading text-vupth-textPrimary">lucro {formatarReais(p.app_profit)}</Text>
       </Text>
     </View>
   );

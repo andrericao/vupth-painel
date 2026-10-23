@@ -27,6 +27,18 @@ comJson("tema do painel × tokens.json da Design", () => {
     expect(CORES[tema]).toEqual(esperado);
   });
 
+  it("fontes, escala e raios do tailwind batem com o JSON", () => {
+    const cfg = require("../../tailwind.config.js").theme.extend; // eslint-disable-line @typescript-eslint/no-require-imports
+    const fam = tokens.tipografia.familia;
+    expect(cfg.fontFamily).toEqual({ body: [fam.body], mono: [fam.mono], heading: [fam.heading], display: [fam.display] });
+    for (const [nome, e] of Object.entries(tokens.tipografia.escala) as [string, { px: number; letterSpacing: number }][]) {
+      const chave = { xxxl: "3xl", xxl: "2xl" }[nome] ?? nome;
+      expect(cfg.fontSize[chave][0]).toBe(`${e.px}px`);
+      expect(parseFloat(cfg.fontSize[chave][1].letterSpacing ?? "0")).toBe(e.letterSpacing);
+    }
+    expect([cfg.borderRadius.card, cfg.borderRadius.hero]).toEqual([`${tokens.raio.card}px`, `${tokens.raio.hero}px`]);
+  });
+
   it("os pares de verificação medem o contraste mínimo", () => {
     for (const p of tokens.verificacao) {
       expect(razao(CORES[p.tema as "claro" | "escuro"][p.texto], CORES[p.tema as "claro" | "escuro"][p.fundo])).toBeGreaterThanOrEqual(p.minimo);

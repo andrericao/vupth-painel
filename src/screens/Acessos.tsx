@@ -54,7 +54,7 @@ export function Acessos() {
   return (
     <View className="gap-5">
       <View className="gap-1">
-        <Text className="text-2xl font-bold text-vupth-textPrimary">Acessos</Text>
+        <Text className="text-2xl font-heading text-vupth-textPrimary">Acessos</Text>
         <Text className="text-vupth-textSecondary">
           {carregado ? `${usuarios.length} no painel · ${convites.length} convite(s) pendente(s)` : erro ? "Não deu para carregar." : "Carregando…"}
         </Text>
@@ -227,7 +227,7 @@ function LinhaUsuario({
     <View testID={`usuario-${u.id}`} className="gap-2 border-b border-vupth-border pb-3">
       <View className="flex-row flex-wrap items-center justify-between gap-2">
         <View className="flex-1 gap-0.5">
-          <Text className="font-semibold text-vupth-textPrimary">
+          <Text className="font-heading text-vupth-textPrimary">
             {u.name || u.email}
             {u.owner ? " · dono" : ""}
           </Text>

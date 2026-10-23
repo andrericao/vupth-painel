@@ -54,7 +54,7 @@ function Codigo({ id, codigo }: { id: string; codigo: string }) {
   return (
     <View className="flex-row flex-wrap items-center gap-2">
       <Text className="text-vupth-textSecondary">Código</Text>
-      <Text testID={`codigo-${id}`} selectable className="font-semibold text-vupth-textPrimary">
+      <Text testID={`codigo-${id}`} selectable className="font-heading text-vupth-textPrimary">
         {codigo}
       </Text>
       <Botao testID={`copiar-${id}`} titulo="Copiar" tipo="secundario" onPress={copiarCodigo} />
@@ -125,7 +125,7 @@ export function Campanhas({ hoje }: { hoje: string }) {
     <View className="gap-5">
       <View className="flex-row flex-wrap items-center justify-between gap-3">
         <View className="gap-1">
-          <Text className="text-2xl font-bold text-vupth-textPrimary">Campanhas</Text>
+          <Text className="text-2xl font-heading text-vupth-textPrimary">Campanhas</Text>
           <Text className="text-vupth-textSecondary">
             {carregado ? `${noAr} no ar · ${campanhas.length} no total` : erro ? "Não deu para carregar." : "Carregando…"}
           </Text>
@@ -204,7 +204,7 @@ function LinhaCampanha({ c, nova, onEditar, onMudou, onErro }: LinhaProps) {
   return (
     <View testID={`campanha-${c.id}`} className={`gap-3 rounded-card border bg-vupth-surface p-5 ${nova ? "border-vupth-green" : "border-vupth-border"}`}>
       <View className="flex-row flex-wrap items-center justify-between gap-2">
-        <Text className="text-lg font-semibold text-vupth-textPrimary">{c.name}</Text>
+        <Text className="text-lg font-heading text-vupth-textPrimary">{c.name}</Text>
         {nova ? <Estado tom="ok" texto="Criada agora" /> : null}
         <Estado tom={TOM[c.status]} texto={NOME_STATUS[c.status]} />
       </View>

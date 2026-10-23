@@ -26,7 +26,7 @@ function Valor({ rotulo, valor, dica }: { rotulo: string; valor: string; dica: s
         <Text className="text-xs uppercase text-vupth-textSecondary">{rotulo}</Text>
         <Dica rotulo={rotulo} texto={dica} />
       </View>
-      <Text className="font-semibold text-vupth-textPrimary">{valor}</Text>
+      <Text className="font-heading text-vupth-textPrimary">{valor}</Text>
     </View>
   );
 }
@@ -34,7 +34,7 @@ function Valor({ rotulo, valor, dica }: { rotulo: string; valor: string; dica: s
 function LinhaDaSimulacao({ l, id }: { l: LinhaSimulada; id: string }) {
   return (
     <View testID={`sim-${id}`} className="gap-2 rounded-xl border border-vupth-border p-3">
-      <Text className="font-semibold text-vupth-textPrimary">
+      <Text className="font-heading text-vupth-textPrimary">
         {l.nome} <Text className="font-normal text-vupth-textSecondary">· {l.pessoas} pessoas · {l.cortes} cortes</Text>
       </Text>
       <View className="flex-row flex-wrap gap-3">
@@ -98,7 +98,7 @@ export function Simulacao({ f, editandoId, existentes }: Props) {
             <LinhaDaSimulacao key={i} l={l} id={`ativa-${i}`} />
           ))}
           <View testID="sim-total" className="gap-2 rounded-xl bg-vupth-greenTint p-3">
-            <Text className="font-semibold text-vupth-textPrimary">
+            <Text className="font-heading text-vupth-textPrimary">
               Total ({linhas.length + 1} {linhas.length ? "campanhas" : "campanha"})
             </Text>
             <View className="flex-row flex-wrap gap-3">
