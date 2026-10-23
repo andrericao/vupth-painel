@@ -46,10 +46,24 @@ type CampoProps = {
   senha?: boolean;
   maxLength?: number;
   desabilitado?: boolean;
+  /** Enter no campo (teclado ou web) manda o formulário. */
+  onEnviar?: () => void;
   testID?: string;
 };
 
-export function Campo({ rotulo, valor, onChange, erro, dica, placeholder, senha, maxLength, desabilitado, testID }: CampoProps) {
+export function Campo({
+  rotulo,
+  valor,
+  onChange,
+  erro,
+  dica,
+  placeholder,
+  senha,
+  maxLength,
+  desabilitado,
+  onEnviar,
+  testID,
+}: CampoProps) {
   const [visivel, setVisivel] = useState(false);
   const oculta = !!senha && !visivel;
   return (
@@ -61,6 +75,8 @@ export function Campo({ rotulo, valor, onChange, erro, dica, placeholder, senha,
           accessibilityLabel={rotulo}
           value={valor}
           onChangeText={onChange}
+          onSubmitEditing={onEnviar}
+          returnKeyType={onEnviar ? "go" : undefined}
           placeholder={placeholder}
           placeholderTextColor="#6B706B"
           secureTextEntry={oculta}

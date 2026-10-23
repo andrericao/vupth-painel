@@ -39,7 +39,7 @@ const valido = (x: Partial<Formulario> = {}): Formulario => ({
   ...formularioVazio("2026-10-16"),
   nome: "Lançamento",
   valor: "10",
-  fim: "2026-10-31",
+  fim: "31/10/2026",
   ...x,
 });
 
@@ -99,7 +99,7 @@ describe("validar", () => {
     expect(validar(valido({ inicio: "16/10" })).inicio).toBeDefined();
     expect(validar(valido({ inicio: "16/10" })).fim).toBeUndefined();
     expect(validar(valido({ fim: "" })).fim).toBeDefined();
-    expect(validar(valido({ fim: "2026-10-15" })).fim).toBe("O fim tem de ser depois do início.");
+    expect(validar(valido({ fim: "15/10/2026" })).fim).toBe("O fim tem de ser depois do início.");
     expect(validar(valido({ limite: "0" })).limite).toBeDefined();
     expect(validar(valido({ limite: "1,5" })).limite).toBeDefined();
   });
@@ -214,9 +214,9 @@ describe("formularioDe", () => {
       codigo: "X",
       publico: "OWNER",
       beneficio: "reais",
-      valor: "10",
-      inicio: "2026-10-16",
-      fim: "2026-10-31",
+      valor: "10,00",
+      inicio: "16/10/2026",
+      fim: "31/10/2026",
       dias: ["MONDAY", "TUESDAY"],
       limite: "50",
       soClientesNovos: false,

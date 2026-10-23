@@ -1,7 +1,10 @@
 const FUSO = "America/Sao_Paulo";
 
-export function dinheiro(valor: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
+/** O padrão único de valor em reais: "R$ 53,90", "R$ 1.234,56" (símbolo, espaço comum, vírgula, duas casas). */
+export function formatarReais(valor: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })
+    .format(valor)
+    .replace(/\u00a0/g, " ");
 }
 
 export function dataCurta(iso: string): string {
@@ -17,6 +20,15 @@ export function dataHora(iso: string): string {
     minute: "2-digit",
     timeZone: FUSO,
   }).format(new Date(iso));
+}
+
+/** Do mais novo para o mais antigo (as listas do painel); sem data vai para o fim. Não muda a lista original. */
+export function maisNovoPrimeiro<T>(itens: T[], data: (x: T) => string | undefined): T[] {
+  const tempo = (x: T) => {
+    const t = Date.parse(data(x) ?? "");
+    return Number.isNaN(t) ? -Infinity : t;
+  };
+  return [...itens].sort((a, b) => tempo(b) - tempo(a));
 }
 
 /** Hoje em São Paulo, AAAA-MM-DD. */

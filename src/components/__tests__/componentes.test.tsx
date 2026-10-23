@@ -1,10 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
 
-import { EsperaBackend } from "../EsperaBackend";
 import { ativo, lerRecolhido, MENU, Shell } from "../Shell";
 import { Aviso, Barra, Botao, Campo, Cartao, Estado, Pilulas } from "../ui";
-import { PREVIAS } from "../../screens/previas";
 
 let mockLargura = 1280;
 jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
@@ -120,9 +118,21 @@ describe("Shell", () => {
     fireEvent.press(screen.getByTestId("recolher-menu"));
     expect(screen.queryByText("André")).toBeNull();
     expect(screen.queryByText("Campanhas")).toBeNull();
+    expect(screen.getByLabelText("VUPTH")).toBeTruthy();
+    expect(screen.queryByText("vupth · painel")).toBeNull();
     expect(screen.getByLabelText("Expandir o menu")).toBeTruthy();
     expect(screen.getByLabelText("Campanhas")).toBeTruthy();
     expect(localStorage.getItem("vupth-painel:menu-recolhido")).toBe("1");
+    expect(screen.getByLabelText("Expandir o menu").props.accessibilityState).toEqual({ expanded: false });
+    expect(screen.queryByTestId("dica-menu-/campanhas")).toBeNull();
+    fireEvent(screen.getByTestId("menu-/campanhas"), "hoverIn");
+    expect(screen.getByTestId("dica-menu-/campanhas")).toBeTruthy();
+    fireEvent(screen.getByTestId("menu-/campanhas"), "hoverOut");
+    expect(screen.queryByTestId("dica-menu-/campanhas")).toBeNull();
+    fireEvent(screen.getByTestId("sair"), "focus");
+    expect(screen.getByTestId("dica-sair")).toBeTruthy();
+    fireEvent(screen.getByTestId("sair"), "blur");
+    expect(screen.queryByTestId("dica-sair")).toBeNull();
     unmount();
     render(
       <Shell {...props}>
@@ -132,6 +142,10 @@ describe("Shell", () => {
     expect(screen.queryByText("Campanhas")).toBeNull();
     fireEvent.press(screen.getByTestId("recolher-menu"));
     expect(screen.getByText("Campanhas")).toBeTruthy();
+    expect(screen.getByText("Collapse")).toBeTruthy();
+    expect(screen.getByLabelText("VUPTH")).toBeTruthy();
+    expect(screen.getByText("vupth · painel")).toBeTruthy();
+    expect(screen.getByLabelText("Recolher o menu").props.accessibilityState).toEqual({ expanded: true });
     expect(localStorage.getItem("vupth-painel:menu-recolhido")).toBe("0");
     localStorage.clear();
   });
@@ -156,6 +170,27 @@ describe("Shell", () => {
     set.mockRestore();
   });
 
+  it("esconde do menu a tela que a permissão não dá (computador e celular)", () => {
+    largura(1280);
+    const props = { atual: "/", nome: "André", onIr: jest.fn(), onSair: jest.fn(), permissoes: ["OVERVIEW"] };
+    const { unmount } = render(
+      <Shell {...props}>
+        <Text>conteúdo</Text>
+      </Shell>,
+    );
+    expect(screen.getByTestId("menu-/")).toBeTruthy();
+    expect(screen.queryByTestId("menu-/usuarios")).toBeNull();
+    unmount();
+    largura(390);
+    render(
+      <Shell {...props}>
+        <Text>conteúdo</Text>
+      </Shell>,
+    );
+    expect(screen.getByTestId("menu-/")).toBeTruthy();
+    expect(screen.queryByTestId("menu-/campanhas")).toBeNull();
+  });
+
   it("no celular, barra de baixo", () => {
     largura(390);
     const onIr = jest.fn();
@@ -171,16 +206,5 @@ describe("Shell", () => {
     fireEvent.press(screen.getByTestId("sair"));
     expect(onSair).toHaveBeenCalled();
     largura(1280);
-  });
-});
-
-describe("EsperaBackend", () => {
-  it("cada tela mostra o endpoint que espera e nenhum número", () => {
-    Object.values(PREVIAS).forEach((p) => {
-      const { unmount } = render(<EsperaBackend previa={p} />);
-      expect(screen.getByText(`Espera o Backend: ${p.endpoint}`)).toBeTruthy();
-      expect(screen.queryAllByText("—")).toHaveLength(p.numeros.length);
-      unmount();
-    });
   });
 });

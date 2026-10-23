@@ -17,6 +17,7 @@ export function Entrar({ onEntrou }: { onEntrou: () => void }) {
   const [etapa, setEtapa] = useState<"configurar" | "codigo">();
 
   async function enviar() {
+    if (enviando) return;
     const faltaEmail = !email.trim() ? "Digite o e-mail." : undefined;
     const faltaSenha = !senha ? "Digite a senha." : undefined;
     setErroEmail(faltaEmail);
@@ -52,7 +53,7 @@ export function Entrar({ onEntrou }: { onEntrou: () => void }) {
           <SegundoFator etapa={etapa} onPronto={onEntrou} />
         ) : (
           <>
-            <Campo testID="email" rotulo="E-mail" valor={email} onChange={setEmail} erro={erroEmail} placeholder="voce@exemplo.com" />
+            <Campo testID="email" rotulo="E-mail" valor={email} onChange={setEmail} erro={erroEmail} onEnviar={enviar} placeholder="voce@exemplo.com" />
             <Campo
               testID="senha"
               rotulo="Senha"
@@ -61,6 +62,7 @@ export function Entrar({ onEntrou }: { onEntrou: () => void }) {
               erro={erroSenha}
               dica="De 6 a 64 caracteres"
               maxLength={64}
+              onEnviar={enviar}
               senha
             />
             {erro ? <Aviso texto={erro} /> : null}

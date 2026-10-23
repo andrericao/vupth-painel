@@ -61,6 +61,20 @@ describe("Entrar", () => {
     expect(entrarMock).not.toHaveBeenCalled();
   });
 
+  it("Enter no e-mail ou na senha entra; Enter repetido enquanto envia não duplica", async () => {
+    let solta: (v: unknown) => void = () => {};
+    entrarMock.mockReturnValue(new Promise((r) => (solta = r)));
+    const onEntrou = jest.fn();
+    render(<Entrar onEntrou={onEntrou} />);
+    fireEvent.changeText(screen.getByTestId("email"), "a@b.c");
+    fireEvent.changeText(screen.getByTestId("senha"), "x");
+    fireEvent(screen.getByTestId("senha"), "submitEditing");
+    fireEvent(screen.getByTestId("email"), "submitEditing");
+    expect(entrarMock).toHaveBeenCalledTimes(1);
+    solta({});
+    await waitFor(() => expect(onEntrou).toHaveBeenCalled());
+  });
+
   it("entra e avisa", async () => {
     entrarMock.mockResolvedValue({});
     const onEntrou = jest.fn();
@@ -143,6 +157,28 @@ describe("Segundo fator", () => {
     expect(erroDoCodigo(new ApiError(0, null, "x"))).toMatch(/Sem conexão/);
     expect(erroDoCodigo(new ApiError(500, null, "falhou"))).toBe("falhou");
     expect(erroDoCodigo(new Error("outro"))).toBe("outro");
+  });
+
+  it("Enter no código verifica (entrada) e confirma (primeira vez, só com a chave pronta)", async () => {
+    a.verificarCodigo.mockResolvedValue(undefined);
+    const onPronto = jest.fn();
+    const { unmount } = render(<SegundoFator etapa="codigo" onPronto={onPronto} />);
+    fireEvent.changeText(screen.getByTestId("codigo"), "123456");
+    fireEvent(screen.getByTestId("codigo"), "submitEditing");
+    await waitFor(() => expect(onPronto).toHaveBeenCalled());
+    expect(a.verificarCodigo).toHaveBeenCalledWith("123456");
+    unmount();
+
+    a.iniciarConfiguracao.mockResolvedValue({ secret: "ABCD EFGH", otpauth_uri: "otpauth://x" });
+    a.confirmarConfiguracao.mockResolvedValue(["AAAAA-BBBBB"]);
+    render(<SegundoFator etapa="configurar" onPronto={jest.fn()} />);
+    fireEvent.changeText(screen.getByTestId("codigo"), "222222");
+    fireEvent(screen.getByTestId("codigo"), "submitEditing");
+    expect(a.confirmarConfiguracao).not.toHaveBeenCalled();
+    await screen.findByText("ABCD EFGH");
+    fireEvent(screen.getByTestId("codigo"), "submitEditing");
+    expect(await screen.findByText("AAAAA-BBBBB")).toBeTruthy();
+    expect(a.confirmarConfiguracao).toHaveBeenCalledWith("222222");
   });
 
   it("primeira vez: mostra a chave, confirma e mostra os códigos de recuperação uma vez", async () => {
@@ -253,7 +289,7 @@ describe("Campanhas", () => {
     fireEvent.press(screen.getByTestId("criar"));
     fireEvent.changeText(screen.getByTestId("nome"), "Nova");
     fireEvent.changeText(screen.getByTestId("valor"), "5");
-    fireEvent.changeText(screen.getByTestId("fim"), "2026-10-31");
+    fireEvent.changeText(screen.getByTestId("fim"), "31102026");
     fireEvent.press(screen.getByTestId("salvar"));
     expect(await screen.findByText("Nova")).toBeTruthy();
 
@@ -271,7 +307,7 @@ describe("Campanhas", () => {
     fireEvent.press(screen.getByTestId("criar"));
     fireEvent.changeText(screen.getByTestId("nome"), "Nova");
     fireEvent.press(screen.getByTestId("beneficio-taxa-zero"));
-    fireEvent.changeText(screen.getByTestId("fim"), "2026-10-31");
+    fireEvent.changeText(screen.getByTestId("fim"), "31102026");
     fireEvent.press(screen.getByTestId("salvar"));
     expect(await screen.findByText("Nova")).toBeTruthy();
   });
@@ -314,9 +350,9 @@ describe("CampanhaForm", () => {
     fireEvent.changeText(screen.getByTestId("nome"), "Indique");
     fireEvent.changeText(screen.getByTestId("descricao"), "d");
     fireEvent.changeText(screen.getByTestId("codigo"), "INDIQUE");
-    fireEvent.changeText(screen.getByTestId("valor"), "3");
-    fireEvent.changeText(screen.getByTestId("inicio"), "2026-10-17");
-    fireEvent.changeText(screen.getByTestId("fim"), "2026-10-31");
+    fireEvent.changeText(screen.getByTestId("valor"), "300");
+    fireEvent.changeText(screen.getByTestId("inicio"), "17102026");
+    fireEvent.changeText(screen.getByTestId("fim"), "31102026");
     fireEvent.changeText(screen.getByTestId("limite"), "50");
     fireEvent.press(screen.getByTestId("salvar"));
     expect(screen.getByText("Escolha quem conta.")).toBeTruthy();
@@ -359,6 +395,25 @@ describe("CampanhaForm", () => {
       }),
     );
   }, 20000);
+
+  it("as máscaras aceitam só o que o campo permite", () => {
+    render(<CampanhaForm {...props} />);
+    fireEvent.changeText(screen.getByTestId("inicio"), "17ab102026999");
+    expect(screen.getByTestId("inicio").props.value).toBe("17/10/2026");
+    fireEvent.changeText(screen.getByTestId("valor"), "1250");
+    expect(screen.getByTestId("valor").props.value).toBe("12,50");
+    fireEvent.press(screen.getByTestId("beneficio-porcento"));
+    fireEvent.changeText(screen.getByTestId("valor"), "150,567");
+    expect(screen.getByTestId("valor").props.value).toBe("100");
+    fireEvent.changeText(screen.getByTestId("limite"), "12a3");
+    expect(screen.getByTestId("limite").props.value).toBe("123");
+    fireEvent.press(screen.getByTestId("modo-link"));
+    fireEvent.changeText(screen.getByTestId("pct-profissional"), "7x0,555");
+    expect(screen.getByTestId("pct-profissional").props.value).toBe("70,55");
+    fireEvent.press(screen.getByTestId("pagamento-MONTHLY"));
+    fireEvent.changeText(screen.getByTestId("dia-mes"), "2a8z9");
+    expect(screen.getByTestId("dia-mes").props.value).toBe("28");
+  });
 
   it("os rótulos do valor seguem o benefício", () => {
     render(<CampanhaForm {...props} />);

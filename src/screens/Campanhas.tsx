@@ -15,7 +15,7 @@ import {
   type Campaign,
   type CampaignStatus,
 } from "../lib/campaigns";
-import { dataCurta } from "../lib/format";
+import { dataCurta, maisNovoPrimeiro } from "../lib/format";
 import { CampanhaForm } from "./CampanhaForm";
 
 type Filtro = CampaignStatus | "TODAS";
@@ -73,7 +73,10 @@ export function Campanhas({ hoje }: { hoje: string }) {
     );
   }
 
-  const visiveis = campanhas.filter((c) => filtro === "TODAS" || c.status === filtro);
+  const visiveis = maisNovoPrimeiro(
+    campanhas.filter((c) => filtro === "TODAS" || c.status === filtro),
+    (c) => c.starts_at,
+  );
   const noAr = campanhas.filter((c) => c.status === "RUNNING").length;
 
   return (
@@ -124,11 +127,11 @@ export function Campanhas({ hoje }: { hoje: string }) {
         />
       ))}
 
-      <Cartao titulo="Isentos e funil">
+      <Cartao titulo="Funil da campanha">
         <Text className="text-vupth-textSecondary">
-          A lista de isentos e o funil link aberto → conta criada → corte concluído chegam com o Backend.
+          O funil link aberto → conta criada → corte concluído chega com o Backend.
         </Text>
-        <Estado tom="atencao" texto="Espera o Backend: /admin/exemptions e o funil da campanha" />
+        <Estado tom="atencao" texto="Espera o Backend: o funil da campanha" />
       </Cartao>
     </View>
   );

@@ -1,6 +1,5 @@
-import { EsperaBackend } from "../../src/components/EsperaBackend";
-import { PREVIAS } from "../../src/screens/previas";
+import { Suporte } from "../../src/screens/Suporte";
 
-export default function Tela() {
-  return <EsperaBackend previa={PREVIAS.suporte} />;
+export default function SuporteRota() {
+  return <Suporte />;
 }

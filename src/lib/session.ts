@@ -11,6 +11,8 @@ export type Sessao = {
   expiraEm: number;
   /** Entrou com a senha, mas falta o segundo fator: o token ainda não abre as telas. */
   pendente?: boolean;
+  /** As permissões do /admin/auth/status (o dono tem todas): o menu esconde a tela que a permissão não dá. */
+  permissoes?: string[];
 };
 
 function storage(): Storage | null {
@@ -50,6 +52,12 @@ export function trocarToken(accessToken: string, expiresIn: number, liberar: boo
   const s = { ...(JSON.parse(atual) as Sessao), accessToken, expiraEm: agora + expiresIn * 1000 };
   if (liberar) delete s.pendente;
   storage()?.setItem(CHAVE, JSON.stringify(s));
+}
+
+export function guardarPermissoes(permissoes: string[]): void {
+  const atual = storage()?.getItem(CHAVE);
+  if (!atual) return;
+  storage()?.setItem(CHAVE, JSON.stringify({ ...(JSON.parse(atual) as Sessao), permissoes }));
 }
 
 export function liberarSessao(): void {

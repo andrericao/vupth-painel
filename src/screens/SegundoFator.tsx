@@ -35,6 +35,7 @@ function PedirCodigo({ onPronto }: { onPronto: () => void }) {
   const [enviando, setEnviando] = useState(false);
 
   async function enviar() {
+    if (enviando) return;
     if (!codigo.trim()) {
       setErro("Digite o código.");
       return;
@@ -62,6 +63,7 @@ function PedirCodigo({ onPronto }: { onPronto: () => void }) {
         erro={erro}
         dica="Perdeu o celular? Use um código de recuperação (ABCDE-FGHJK)."
         placeholder="123456"
+        onEnviar={enviar}
       />
       <Botao testID="verificar" titulo="Entrar" onPress={enviar} carregando={enviando} />
     </>
@@ -82,6 +84,7 @@ function Configurar({ onPronto }: { onPronto: () => void }) {
   }, []);
 
   async function confirmar() {
+    if (enviando) return;
     if (!codigo.trim()) {
       setErro("Digite o código do aplicativo.");
       return;
@@ -145,6 +148,7 @@ function Configurar({ onPronto }: { onPronto: () => void }) {
         onChange={setCodigo}
         erro={config ? erro : undefined}
         placeholder="123456"
+        onEnviar={config ? confirmar : undefined}
       />
       {!config && erro ? <Aviso texto={erro} /> : null}
       <Botao testID="confirmar" titulo="Confirmar" onPress={confirmar} carregando={enviando} desabilitado={!config} />
