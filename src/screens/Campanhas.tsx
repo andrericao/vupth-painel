@@ -20,7 +20,7 @@ import {
   type CampaignStatus,
 } from "../lib/campaigns";
 import { gastam, itemDaCampanha } from "../lib/simulacao";
-import { dataCurta, maisNovoPrimeiro } from "../lib/format";
+import { dataCurta, formatarReais, maisNovoPrimeiro } from "../lib/format";
 import { CampanhaForm } from "./CampanhaForm";
 
 type Filtro = CampaignStatus | "TODAS";
@@ -262,6 +262,11 @@ function LinhaCampanha({ c, nova, onEditar, onMudou, onErro }: LinhaProps) {
         <Text className="text-sm text-vupth-textPrimary">
           {fracao == null ? `${c.redemptions} aceitaram · sem limite` : `${c.redemptions} de ${c.max_redemptions}`}
         </Text>
+        {c.max_total_cost != null ? (
+          <Text testID={`teto-${c.id}`} className="text-sm text-vupth-textSecondary">
+            Teto de gasto: {formatarReais(c.max_total_cost)}
+          </Text>
+        ) : null}
         {fracao == null ? null : <Barra testID={`barra-${c.id}`} fracao={fracao} />}
       </View>
       <View className="flex-row">

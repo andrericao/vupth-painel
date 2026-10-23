@@ -124,6 +124,16 @@ export type MultaLinha = {
 
 export type DividaLinha = { professional_id: string; amount: number; simulated: boolean };
 
+/** Prêmio do compartilhe e ganhe que espera a liberação do André (GET /admin/referrals/pending-release). */
+export type PremioPendente = {
+  campaign_id: string;
+  campaign_name: string;
+  beneficiary_id: string;
+  beneficiary_name?: string;
+  amount: number;
+  credits: number;
+};
+
 export const TAMANHO_PAGINA = 20;
 
 function consulta(params: Record<string, string | number | undefined>): string {
@@ -155,6 +165,9 @@ export const mudarDividaReal = (real: boolean) => api<{ real: boolean }>("/admin
 export const listarDividas = () => api<DividaLinha[]>("/admin/debts");
 export const quitarDivida = (professionalId: string) =>
   api<{ settled_amount: number }>(`/admin/debts/${professionalId}/settle`, { method: "POST" });
+export const listarPremiosPendentes = () => api<PremioPendente[]>("/admin/referrals/pending-release");
+export const liberarPremio = (campaign_id: string, beneficiary_id?: string) =>
+  api<{ released_credits: number; released_at: string }>("/admin/referrals/release", { method: "POST", body: { campaign_id, beneficiary_id } });
 export const listarSuporte = (page: number) =>
   api<Pagina<MensagemSuporte>>(`/admin/support/messages${consulta({ page, size: TAMANHO_PAGINA })}`);
 export const listarMultas = (type: TipoMulta | "", test: "" | "false" | "true", q: string, page: number) =>
@@ -179,6 +192,7 @@ export const PERMISSAO_DA_ROTA: Record<string, string> = {
   "/testes": "ESTABLISHMENTS",
   "/dinheiro": "FINANCE",
   "/dividas": "FINANCE",
+  "/premios": "FINANCE",
   "/multas": "FINANCE",
   "/suporte": "SUPPORT",
   "/alertas": "ALERTS",

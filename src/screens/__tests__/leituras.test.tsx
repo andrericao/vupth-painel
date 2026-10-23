@@ -9,6 +9,7 @@ import { Dividas } from "../Dividas";
 import { Hoje } from "../Hoje";
 import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
 import { Multas } from "../Multas";
+import { Premios } from "../Premios";
 import { Suporte } from "../Suporte";
 import { Testes } from "../Testes";
 
@@ -28,6 +29,8 @@ jest.mock("../../lib/admin", () => ({
   mudarDividaReal: jest.fn(),
   listarDividas: jest.fn(),
   quitarDivida: jest.fn(),
+  listarPremiosPendentes: jest.fn(),
+  liberarPremio: jest.fn(),
   iniciarTeste: jest.fn(),
   tirarDoTeste: jest.fn(),
   finalizarTeste: jest.fn(),
@@ -645,5 +648,48 @@ describe("Dinheiro: números do período", () => {
     expect(screen.getByText(/Aguardando confirmação: 2/)).toBeTruthy();
     expect(screen.getByText(/a pagar/)).toBeTruthy();
     expect(m.lerFinanceiro).toHaveBeenCalledWith("2026-10-01T00:00:00-03:00", "2026-10-23T00:00:00-03:00");
+  });
+});
+
+describe("Prêmios do compartilhe e ganhe", () => {
+  const premios: A.PremioPendente[] = [
+    { campaign_id: "c1", campaign_name: "Indique", beneficiary_id: "b1", beneficiary_name: "Ana", amount: 15, credits: 3 },
+    { campaign_id: "c1", campaign_name: "Indique", beneficiary_id: "bbbbbbbb-2", amount: 5, credits: 1 },
+  ];
+
+  it("lista, pede confirmação e libera só aquela pessoa", async () => {
+    m.listarPremiosPendentes.mockResolvedValueOnce(premios).mockResolvedValue([premios[1]]);
+    m.liberarPremio.mockResolvedValue({ released_credits: 3, released_at: "2026-10-23T12:00:00Z" });
+    render(<Premios />);
+    await screen.findByTestId("premio-c1-b1");
+    expect(screen.getByText("Ana")).toBeTruthy();
+    expect(screen.getByText("Pessoa #bbbbbbbb")).toBeTruthy();
+    expect(screen.getByText("R$ 20,00")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("liberar-c1-b1"));
+    expect(m.liberarPremio).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("confirmar-liberar-c1-b1"));
+    await waitFor(() => expect(m.liberarPremio).toHaveBeenCalledWith("c1", "b1"));
+    expect(await screen.findByText("Liberado: 3 prêmios.")).toBeTruthy();
+    expect(screen.queryByTestId("premio-c1-b1")).toBeNull();
+  });
+
+  it("cancelar não libera; vazio avisa; erro aparece", async () => {
+    m.listarPremiosPendentes.mockResolvedValueOnce([premios[0]]).mockResolvedValue([]);
+    m.liberarPremio.mockRejectedValue(new ApiError(409, "JA_LIBERADO", "Já liberado."));
+    render(<Premios />);
+    await screen.findByTestId("premio-c1-b1");
+    fireEvent.press(screen.getByTestId("liberar-c1-b1"));
+    fireEvent.press(screen.getByTestId("cancelar-liberar-c1-b1"));
+    expect(screen.getByTestId("liberar-c1-b1")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("liberar-c1-b1"));
+    fireEvent.press(screen.getByTestId("confirmar-liberar-c1-b1"));
+    expect(await screen.findByText("Já liberado.")).toBeTruthy();
+    expect(screen.getByTestId("premio-c1-b1")).toBeTruthy();
+  });
+
+  it("sem prêmio esperando, avisa", async () => {
+    m.listarPremiosPendentes.mockResolvedValue([]);
+    render(<Premios />);
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
   });
 });

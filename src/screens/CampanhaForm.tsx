@@ -11,6 +11,7 @@ import {
   criarCampanha,
   DIA_DA_SEMANA,
   DICA_BASE,
+  DICA_TETO,
   NOME_BASE,
   DIAS,
   editarCampanha,
@@ -193,6 +194,14 @@ export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCanc
           valor={f.limite}
           onChange={(v) => muda("limite")(somenteNumeros(v, 7))}
           erro={erros.limite}
+        />
+        <Campo
+          testID="teto"
+          rotulo="Teto de gasto em R$ (vazio = sem teto)"
+          valor={f.teto}
+          onChange={(v) => muda("teto")(mascaraValor(v))}
+          erro={erros.teto}
+          dica={DICA_TETO}
         />
       </Cartao>
 

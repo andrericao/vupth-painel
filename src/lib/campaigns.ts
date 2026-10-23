@@ -38,6 +38,7 @@ export type Campaign = {
   ends_at: string;
   weekdays?: string;
   max_redemptions?: number;
+  max_total_cost?: number;
   redemptions: number;
   new_clients_only: boolean;
   active: boolean;
@@ -59,6 +60,7 @@ export type CampaignRequest = {
   ends_at: string;
   weekdays: string | null;
   max_redemptions: number | null;
+  max_total_cost: number | null;
   new_clients_only: boolean;
   benefit_base: BaseDoValor | null;
 } & Bonificacao<null>;
@@ -115,6 +117,7 @@ export type Formulario = {
   fim: string; // dd/mm/aaaa
   dias: string[];
   limite: string;
+  teto: string;
   soClientesNovos: boolean;
   pctProfissional: string;
   pctDono: string;
@@ -138,6 +141,7 @@ export function formularioVazio(hoje: string): Formulario {
     fim: "",
     dias: [],
     limite: "",
+    teto: "",
     soClientesNovos: false,
     // DEC-73: a bonificação nasce em branco; o Andre preenche campanha a campanha.
     pctProfissional: "",
@@ -168,6 +172,7 @@ export function formularioDe(c: Campaign): Formulario {
     fim: isoParaBr(diaSP(c.ends_at)),
     dias: c.weekdays ? c.weekdays.split(",") : [],
     limite: c.max_redemptions != null ? String(c.max_redemptions) : "",
+    teto: c.max_total_cost != null ? valorParaCampo(c.max_total_cost) : "",
     soClientesNovos: c.new_clients_only,
     pctProfissional: texto(c.referral_professional_percent),
     pctDono: texto(c.referral_owner_percent),
@@ -211,6 +216,11 @@ export function validar(f: Formulario): Partial<Record<keyof Formulario, string>
     const l = Number(f.limite.trim());
     if (!Number.isInteger(l) || l < 1) erros.limite = "Um número inteiro, 1 ou mais.";
   }
+  if (f.teto.trim()) {
+    const t = numero(f.teto);
+    if (t == null || t < 0.01) erros.teto = "Informe um valor de R$ 0,01 para cima.";
+    else if (t >= 1e8) erros.teto = "Valor grande demais.";
+  }
   if (f.modo === "link") validarBonificacao(f, erros);
   return erros;
 }
@@ -250,6 +260,7 @@ export function paraRequest(f: Formulario): CampaignRequest {
     ends_at: `${brParaIso(f.fim)}T23:59:59-03:00`,
     weekdays: f.dias.length ? DIAS.filter((d) => f.dias.includes(d)).join(",") : null,
     max_redemptions: f.limite.trim() ? Number(f.limite.trim()) : null,
+    max_total_cost: f.teto.trim() ? numero(f.teto) : null,
     new_clients_only: f.soClientesNovos,
     benefit_base: tipo === "DISCOUNT" ? f.baseDoValor : null,
     referral_professional_percent: tipo === "REFERRAL_BONUS" ? numero(f.pctProfissional) : null,
@@ -263,6 +274,8 @@ export function paraRequest(f: Formulario): CampaignRequest {
 /* ───────── Leitura ───────── */
 
 export const NOME_BASE: Record<BaseDoValor, string> = { WITH_FEE: "Valor com taxa", WITHOUT_FEE: "Valor sem taxa" };
+export const DICA_TETO =
+  "Quanto a campanha pode gastar no total (a soma dos descontos ou dos prêmios). Ao chegar nesse valor ela para de valer. Vazio = sem teto de gasto.";
 export const DICA_BASE =
   "Com taxa: o limite é o preço que o cliente vê. Sem taxa: o limite é o que o profissional recebe. O desconto nunca passa do valor do corte e os cupons não se acumulam.";
 

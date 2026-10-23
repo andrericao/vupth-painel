@@ -182,6 +182,7 @@ describe("paraRequest", () => {
       ends_at: "2026-10-31T23:59:59-03:00",
       weekdays: "MONDAY,FRIDAY",
       max_redemptions: null,
+      max_total_cost: null,
       new_clients_only: false,
       benefit_base: "WITH_FEE",
       referral_professional_percent: null,
@@ -211,6 +212,26 @@ describe("paraRequest", () => {
   });
 });
 
+describe("teto de gasto (max_total_cost)", () => {
+  it("vazio não manda teto; preenchido vai em reais", () => {
+    expect(paraRequest(valido()).max_total_cost).toBeNull();
+    expect(paraRequest(valido({ teto: "1.250,50" })).max_total_cost).toBe(1250.5);
+    expect(paraRequest(link({ teto: "300,00" })).max_total_cost).toBe(300);
+  });
+
+  it("valida: vazio vale; zero e valor enorme não", () => {
+    expect(validar(valido({ teto: "" })).teto).toBeUndefined();
+    expect(validar(valido({ teto: "0,01" })).teto).toBeUndefined();
+    expect(validar(valido({ teto: "0,00" })).teto).toBeDefined();
+    expect(validar(valido({ teto: "100.000.000,00" })).teto).toBeDefined();
+  });
+
+  it("volta da campanha para o campo", () => {
+    expect(formularioDe(campanha({ max_total_cost: 1250.5 })).teto).toBe("1.250,50");
+    expect(formularioDe(campanha()).teto).toBe("");
+  });
+});
+
 describe("formularioDe", () => {
   it("a base do valor volta da campanha", () => {
     expect(formularioDe(campanha({ benefit_base: "WITHOUT_FEE" })).baseDoValor).toBe("WITHOUT_FEE");
@@ -231,6 +252,7 @@ describe("formularioDe", () => {
       fim: "31/10/2026",
       dias: ["MONDAY", "TUESDAY"],
       limite: "50",
+      teto: "",
       soClientesNovos: false,
       pctProfissional: "",
       pctDono: "",
