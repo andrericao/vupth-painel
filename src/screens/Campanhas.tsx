@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 
+import { Dica, Leitura, Numero } from "../components/leitura";
+import { useCarga } from "../lib/useCarga";
 import { Aviso, Barra, Botao, Carregando, Cartao, Estado, Pilulas } from "../components/ui";
 import {
   descreverBeneficio,
   comoParticipar,
   descreverBonificacao,
   encerrarCampanha,
+  lerFunil,
   listarCampanhas,
   NOME_PUBLICO,
   NOME_STATUS,
@@ -182,9 +185,50 @@ export function Campanhas({ hoje }: { hoje: string }) {
 
 type LinhaProps = { c: Campaign; nova: boolean; onEditar: () => void; onMudou: (c: Campaign) => void; onErro: (m: string) => void };
 
+const DICA_FUNIL =
+  "O clique do link só passa a ser medido com o compartilhe-e-ganhe. A conta criada conta as indicações da janela da campanha: campanhas de link que se sobrepõem contam as mesmas contas. O corte concluído conta clientes indicados distintos com bonificação desta campanha.";
+
+/** Funil da campanha: link aberto, conta criada, corte concluído e resgates, com o nome de quem resgatou. */
+function Funil({ id }: { id: string }) {
+  const r = useCarga(`funil:${id}`, () => lerFunil(id));
+  const f = r.dado;
+  return (
+    <View testID={`funil-${id}`} className="gap-3 rounded-xl bg-vupth-background p-3">
+      <View className="flex-row items-center gap-2">
+        <Text className="font-heading text-vupth-textPrimary">Funil da campanha</Text>
+        <Dica rotulo="Funil da campanha" texto={DICA_FUNIL} />
+      </View>
+      <Leitura carregando={r.carregando} erro={r.erro} onTentar={r.recarregar}>
+        {f ? (
+          <>
+            <View className="flex-row flex-wrap gap-3">
+              <Numero rotulo="Link aberto" valor={f.link_opened_measured && f.link_opened != null ? String(f.link_opened) : "não medido"} />
+              <Numero rotulo="Conta criada" valor={String(f.accounts_created)} />
+              <Numero rotulo="Corte concluído" valor={String(f.first_cut_done)} />
+              <Numero rotulo="Resgates" valor={String(f.redeemed)} />
+            </View>
+            {f.redeemers.length ? (
+              maisNovoPrimeiro(f.redeemers, (x) => x.redeemed_at).map((x) => (
+                <Text key={`${x.name}-${x.redeemed_at}`} className="text-sm text-vupth-textSecondary">
+                  {x.name} · {dataCurta(x.redeemed_at)}
+                </Text>
+              ))
+            ) : (
+              <Text testID={`sem-resgates-${id}`} className="text-sm text-vupth-textSecondary">
+                Ninguém resgatou ainda.
+              </Text>
+            )}
+          </>
+        ) : null}
+      </Leitura>
+    </View>
+  );
+}
+
 function LinhaCampanha({ c, nova, onEditar, onMudou, onErro }: LinhaProps) {
   const [ocupado, setOcupado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+  const [funil, setFunil] = useState(false);
   const fracao = ocupacao(c);
   const bonificacao = descreverBonificacao(c);
   const participar = comoParticipar(c);
@@ -220,6 +264,10 @@ function LinhaCampanha({ c, nova, onEditar, onMudou, onErro }: LinhaProps) {
         </Text>
         {fracao == null ? null : <Barra testID={`barra-${c.id}`} fracao={fracao} />}
       </View>
+      <View className="flex-row">
+        <Botao testID={`funil-abrir-${c.id}`} titulo={funil ? "Esconder o funil" : "Ver o funil"} tipo="secundario" onPress={() => setFunil((v) => !v)} />
+      </View>
+      {funil ? <Funil id={c.id} /> : null}
       {c.status === "ENDED" ? null : (
         <View className="flex-row flex-wrap gap-2">
           <Botao testID={`editar-${c.id}`} titulo="Editar" tipo="secundario" onPress={onEditar} desabilitado={ocupado} />

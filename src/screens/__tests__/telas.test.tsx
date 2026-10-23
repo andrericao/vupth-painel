@@ -20,6 +20,7 @@ jest.mock("../../lib/auth", () => ({
 jest.mock("../../lib/campaigns", () => ({
   ...jest.requireActual("../../lib/campaigns"),
   listarCampanhas: jest.fn(),
+  lerFunil: jest.fn(),
   criarCampanha: jest.fn(),
   editarCampanha: jest.fn(),
   pausarCampanha: jest.fn(),
@@ -296,6 +297,55 @@ describe("Campanhas", () => {
     fireEvent.press(await screen.findByTestId("editar-c1"));
     expect(screen.queryByTestId("sim-ativa-0")).toBeNull();
     expect(screen.getByTestId("sim-total")).toHaveTextContent(/Total \(1 campanha\)/);
+  });
+
+  it("funil: link não medido, conta, corte, resgates com o nome, o i e erro com tentar de novo", async () => {
+    m.listarCampanhas.mockResolvedValue([campanha()]);
+    m.lerFunil
+      .mockRejectedValueOnce(new Error("Sem conexão"))
+      .mockResolvedValueOnce({
+        campaign_id: "c1",
+        name: "Lançamento",
+        type: "REFERRAL_BONUS",
+        from: "2026-10-16T03:00:00Z",
+        to: "2026-11-16T03:00:00Z",
+        link_opened: null,
+        link_opened_measured: false,
+        accounts_created: 7,
+        first_cut_done: 3,
+        redeemed: 2,
+        redeemers: [
+          { name: "Ana", redeemed_at: "2026-10-17T12:00:00Z" },
+          { name: "Bia", redeemed_at: "2026-10-19T12:00:00Z" },
+        ],
+      })
+      .mockResolvedValueOnce({
+        campaign_id: "c1",
+        name: "Lançamento",
+        type: "REFERRAL_BONUS",
+        from: "2026-10-16T03:00:00Z",
+        to: "2026-11-16T03:00:00Z",
+        link_opened: 9,
+        link_opened_measured: true,
+        accounts_created: 0,
+        first_cut_done: 0,
+        redeemed: 0,
+        redeemers: [],
+      });
+    render(<Campanhas hoje="2026-10-16" />);
+    fireEvent.press(await screen.findByTestId("funil-abrir-c1"));
+    expect(await screen.findByText("Sem conexão")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("tentar"));
+    expect(await screen.findByText("não medido")).toBeTruthy();
+    expect(screen.getByText("7")).toBeTruthy();
+    const nomes = screen.getAllByText(/^(Ana|Bia) ·/).map((n) => String(n.props.children[0]));
+    expect(nomes).toEqual(["Bia", "Ana"]);
+    expect(screen.getByLabelText("Como é calculado: Funil da campanha")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("funil-abrir-c1"));
+    expect(screen.queryByTestId("funil-c1")).toBeNull();
+    fireEvent.press(screen.getByTestId("funil-abrir-c1"));
+    expect(await screen.findByTestId("sem-resgates-c1")).toBeTruthy();
+    expect(screen.getByText("9")).toBeTruthy();
   });
 
   it("sem campanha nenhuma", async () => {

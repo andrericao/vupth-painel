@@ -59,6 +59,20 @@ export type CampaignRequest = {
 } & Bonificacao<null>;
 
 export const listarCampanhas = () => api<Campaign[]>("/admin/campaigns");
+export type Funil = {
+  campaign_id: string;
+  name: string;
+  type: CampaignType;
+  from: string;
+  to: string;
+  link_opened: number | null;
+  link_opened_measured: boolean;
+  accounts_created: number;
+  first_cut_done: number;
+  redeemed: number;
+  redeemers: { name: string; redeemed_at: string }[];
+};
+export const lerFunil = (id: string) => api<Funil>(`/admin/campaigns/${id}/funnel`);
 export const criarCampanha = (r: CampaignRequest) => api<Campaign>("/admin/campaigns", { method: "POST", body: r });
 export const editarCampanha = (id: string, r: CampaignRequest) =>
   api<Campaign>(`/admin/campaigns/${id}`, { method: "PUT", body: r });
