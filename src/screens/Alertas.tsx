@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 
 import { Aviso, Cartao, Pilulas } from "../components/ui";
-import { Leitura, Numero, Titulo } from "../components/leitura";
-import { lerAlertas } from "../lib/admin";
+import { Dica, Leitura, Numero, Titulo } from "../components/leitura";
+import { lerAlertas, type SerieHoraria } from "../lib/admin";
 import { dataHora, formatarReais, maisNovoPrimeiro } from "../lib/format";
 import { useCarga } from "../lib/useCarga";
 
@@ -11,6 +11,38 @@ const NAO_MEDIDO: Record<string, string> = {
   push_refused: "Push recusado",
   server_5xx: "Erro 5xx acima do normal",
 };
+
+const DICA_PUSH =
+  "Conta os recibos de push com erro: a Expo, o FCM ou o APNs recusou, em geral token morto. O contador só enche a partir do deploy; antes disso aparece 0.";
+const DICA_5XX = "Conta toda resposta 5xx da API. O contador só enche a partir do deploy; antes disso aparece 0.";
+
+/** Última hora, 24 horas e uma barra por hora (da mais velha para a mais nova). */
+function LinhaSerie({ id, nome, dica, s }: { id: string; nome: string; dica: string; s: SerieHoraria }) {
+  const maior = Math.max(1, ...s.by_hour.map((h) => h.count));
+  return (
+    <Cartao>
+      <View className="flex-row items-center gap-2">
+        <Text className="font-heading text-vupth-textPrimary">{nome}</Text>
+        <Dica rotulo={nome} texto={dica} />
+      </View>
+      <View className="flex-row flex-wrap gap-4">
+        <Numero rotulo="Última hora" valor={String(s.last_hour)} />
+        <Numero rotulo="24 horas" valor={String(s.last_24h)} />
+      </View>
+      <View testID={`serie-${id}`} accessibilityLabel={`${nome} por hora, últimas ${s.by_hour.length} horas`} className="h-16 flex-row items-end gap-1">
+        {s.by_hour.map((h) => (
+          <View
+            key={h.hour}
+            testID={`barra-${id}`}
+            accessibilityLabel={`${dataHora(h.hour)}: ${h.count}`}
+            className={`flex-1 rounded-sm ${h.count ? "bg-vupth-danger" : "bg-vupth-surfaceAlt"}`}
+            style={{ height: `${h.count ? Math.max(8, Math.round((h.count / maior) * 100)) : 4}%` }}
+          />
+        ))}
+      </View>
+    </Cartao>
+  );
+}
 
 /** Só o que pede ação: pagamento parado e indicação a pagar; o que o Backend ainda não mede vem avisado. */
 export function Alertas() {
@@ -53,6 +85,8 @@ export function Alertas() {
                 </Text>
               )}
             </Cartao>
+            {a.push_refused ? <LinhaSerie id="push" nome="Push recusado" dica={DICA_PUSH} s={a.push_refused} /> : null}
+            {a.http_5xx ? <LinhaSerie id="5xx" nome="Erros 5xx da API" dica={DICA_5XX} s={a.http_5xx} /> : null}
             {a.not_measured.length ? (
               <Aviso
                 tom="atencao"

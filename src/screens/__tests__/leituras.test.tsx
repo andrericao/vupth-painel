@@ -269,6 +269,26 @@ describe("Alertas", () => {
     await waitFor(() => expect(m.lerAlertas).toHaveBeenLastCalledWith(72));
   });
 
+  it("push recusado e 5xx: última hora, 24 horas e uma barra por hora, com o i", async () => {
+    const serie = (n: number) => ({
+      last_hour: n,
+      last_24h: n * 3,
+      by_hour: [
+        { hour: "2026-10-23T10:00:00Z", count: 0 },
+        { hour: "2026-10-23T11:00:00Z", count: n },
+      ],
+    });
+    m.lerAlertas.mockResolvedValue(alertas({ push_refused: serie(4), http_5xx: serie(0), not_measured: [] }));
+    render(<Alertas />);
+    expect(await screen.findByTestId("serie-push")).toBeTruthy();
+    expect(screen.getByTestId("serie-5xx")).toBeTruthy();
+    expect(screen.getAllByTestId("barra-push")).toHaveLength(2);
+    expect(screen.getByText("12")).toBeTruthy();
+    expect(screen.getByLabelText("Como é calculado: Push recusado")).toBeTruthy();
+    expect(screen.getByLabelText("Como é calculado: Erros 5xx da API")).toBeTruthy();
+    expect(screen.queryByText(/Ainda não medido/)).toBeNull();
+  });
+
   it("nada parado e tudo medido", async () => {
     m.lerAlertas.mockResolvedValue(alertas({ payments_stuck: [], payments_stuck_count: 0, not_measured: [] }));
     render(<Alertas />);

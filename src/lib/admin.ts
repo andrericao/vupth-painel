@@ -37,6 +37,7 @@ export type Financeiro = {
   by_payment_status: { status: string; count: number; amount: number }[];
   referral: { credits_total: number; credits_paid: number; credits_unpaid: number };
 };
+export type SerieHoraria = { last_hour: number; last_24h: number; by_hour: { hour: string; count: number }[] };
 export type Alertas = {
   payments_stuck_hours: number;
   payments_stuck_count: number;
@@ -44,6 +45,8 @@ export type Alertas = {
   payments_stuck: { attendance_id: string; amount: number; finished_at: string }[];
   referral_unpaid_count: number;
   referral_unpaid_amount: number;
+  push_refused?: SerieHoraria;
+  http_5xx?: SerieHoraria;
   not_measured: string[];
 };
 export type Pagina<T> = { items: T[]; page: number; size: number; total: number };
