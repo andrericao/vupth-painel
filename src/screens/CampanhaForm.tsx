@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 
 import { Aviso, Botao, Campo, Cartao, Pilulas } from "../components/ui";
+import type { ItemSimulado } from "../lib/simulacao";
+import { Simulacao } from "./Simulacao";
 import { ApiError } from "../lib/api";
 import { mascaraData, mascaraPercentual, mascaraValor, somenteNumeros } from "../lib/mascaras";
 import {
@@ -27,10 +29,10 @@ import {
   type ReferralScope,
 } from "../lib/campaigns";
 
-type Props = { campanha?: Campaign; hoje: string; onPronto: (c: Campaign) => void; onCancelar: () => void };
+type Props = { campanha?: Campaign; existentes?: ItemSimulado[]; hoje: string; onPronto: (c: Campaign) => void; onCancelar: () => void };
 
 /** Criar campanha → cupom ou link → os parâmetros (DEC-69, 73). Editar usa o mesmo formulário. */
-export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
+export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCancelar }: Props) {
   const [f, setF] = useState<Formulario>(() => (campanha ? formularioDe(campanha) : formularioVazio(hoje)));
   const [erros, setErros] = useState<ReturnType<typeof validar>>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
@@ -177,6 +179,8 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
           erro={erros.limite}
         />
       </Cartao>
+
+      <Simulacao f={f} editandoId={campanha?.id} existentes={existentes} />
 
       {erroGeral ? <Aviso texto={erroGeral} /> : null}
       <View className="flex-row gap-3">

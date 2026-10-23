@@ -235,6 +235,69 @@ describe("Campanhas", () => {
     expect(screen.getByTestId("vazio")).toHaveTextContent("Nenhuma campanha neste filtro.");
   });
 
+  it("cupom com Copiar (confirma, ou avisa se o navegador nega) e link com o como participar", async () => {
+    const cupom = campanha({ code: "TESTE10" });
+    const link = campanha({
+      id: "c2",
+      name: "Indique",
+      type: "REFERRAL_BONUS",
+      visibility: "PRIVATE",
+      audience: "PROFESSIONAL",
+      code: "PART1",
+    });
+    const aberto = campanha({ id: "c3", name: "Aberta", type: "REFERRAL_BONUS" });
+    m.listarCampanhas.mockResolvedValue([cupom, link, aberto]);
+    const escrever = jest.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("negado"));
+    Object.defineProperty(navigator, "clipboard", { value: { writeText: escrever }, configurable: true });
+    render(<Campanhas hoje="2026-10-16" />);
+    await screen.findByText("Lançamento");
+    expect(screen.getByTestId("codigo-c1")).toHaveTextContent("TESTE10");
+    expect(screen.getByTestId("participar-c2")).toHaveTextContent(
+      "Participa pelo bloco de campanhas da Home do Partner, tocando em Participar e informando o código de participação.",
+    );
+    expect(screen.getByTestId("participar-c3")).toHaveTextContent(/da Home do Client \(cliente\) ou Partner \(profissional e dono\), tocando em Participar\./);
+    expect(screen.queryByTestId("participar-c1")).toBeNull();
+    fireEvent.press(screen.getByTestId("copiar-c1"));
+    expect(await screen.findByTestId("copiado-c1")).toHaveTextContent("Copiado");
+    expect(escrever).toHaveBeenCalledWith("TESTE10");
+    fireEvent.press(screen.getByTestId("copiar-c2"));
+    expect(await screen.findByTestId("copiado-c2")).toHaveTextContent(/Não deu para copiar/);
+  });
+
+  it("simulação no fim do formulário: soma a nova com as ativas e sem preço some", async () => {
+    m.listarCampanhas.mockResolvedValue([
+      campanha({ code: "A", value_amount: 10, max_redemptions: 5 }),
+      campanha({ id: "c9", name: "Velha", status: "ENDED" }),
+    ]);
+    render(<Campanhas hoje="2026-10-16" />);
+    await screen.findByText("Lançamento");
+    fireEvent.press(screen.getByTestId("criar"));
+    fireEvent.changeText(screen.getByTestId("nome"), "Nova");
+    fireEvent.changeText(screen.getByTestId("valor"), "1000");
+    fireEvent.changeText(screen.getByTestId("limite"), "20");
+    fireEvent.changeText(screen.getByTestId("sim-cortes"), "2");
+    expect(screen.getByTestId("sim-nova")).toHaveTextContent(/Nova · 20 pessoas · 40 cortes/);
+    expect(screen.getByTestId("sim-nova")).toHaveTextContent(/R\$ 400,00/);
+    expect(screen.getByTestId("sim-ativa-0")).toHaveTextContent(/Lançamento · 5 pessoas · 10 cortes/);
+    expect(screen.getByTestId("sim-total")).toHaveTextContent(/Total \(2 campanhas\)/);
+    expect(screen.getByTestId("sim-total")).toHaveTextContent(/R\$ 500,00/);
+    fireEvent.changeText(screen.getByTestId("sim-corte"), "");
+    expect(screen.getByTestId("sim-vazia")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("sim-corte"), "5000");
+    fireEvent.changeText(screen.getByTestId("limite"), "");
+    fireEvent.changeText(screen.getByTestId("sim-pessoas"), "3");
+    expect(screen.getByTestId("sim-nova")).toHaveTextContent(/3 pessoas/);
+    expect(screen.getByTestId("sim-total")).toHaveTextContent(/sem limite/);
+  });
+
+  it("editar: a própria campanha não conta duas vezes na simulação", async () => {
+    m.listarCampanhas.mockResolvedValue([campanha({ max_redemptions: 5 })]);
+    render(<Campanhas hoje="2026-10-16" />);
+    fireEvent.press(await screen.findByTestId("editar-c1"));
+    expect(screen.queryByTestId("sim-ativa-0")).toBeNull();
+    expect(screen.getByTestId("sim-total")).toHaveTextContent(/Total \(1 campanha\)/);
+  });
+
   it("sem campanha nenhuma", async () => {
     m.listarCampanhas.mockResolvedValue([]);
     render(<Campanhas hoje="2026-10-16" />);
@@ -292,6 +355,7 @@ describe("Campanhas", () => {
     fireEvent.changeText(screen.getByTestId("fim"), "31102026");
     fireEvent.press(screen.getByTestId("salvar"));
     expect(await screen.findByText("Nova")).toBeTruthy();
+    expect(screen.getByText("Criada agora")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("editar-c1"));
     expect(screen.getByText("Editar campanha")).toBeTruthy();
