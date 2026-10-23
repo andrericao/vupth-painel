@@ -300,3 +300,16 @@ export function descreverBonificacao(c: Campaign): string | null {
     .filter(Boolean)
     .join(" · ");
 }
+
+/** DEC-113: não existe um link único da campanha — o link é de cada pessoa; o resumo diz onde cada público participa. */
+export function comoParticipar(c: Campaign): string | null {
+  if (c.type !== "REFERRAL_BONUS") return null;
+  const onde =
+    c.audience === "CLIENT"
+      ? "Client"
+      : c.audience === "PROFESSIONAL" || c.audience === "OWNER"
+        ? "Partner"
+        : "Client (cliente) ou Partner (profissional e dono)";
+  const privada = c.visibility === "PRIVATE" ? " e informando o código de participação" : "";
+  return `Participa pelo bloco de campanhas da Home do ${onde}, tocando em Participar${privada}.`;
+}
