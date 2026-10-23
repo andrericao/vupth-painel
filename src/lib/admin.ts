@@ -36,6 +36,7 @@ export type Financeiro = {
   money: Dinheiro;
   by_payment_status: { status: string; count: number; amount: number }[];
   referral: { credits_total: number; credits_paid: number; credits_unpaid: number };
+  pilot?: { attendances: number; amount: number };
 };
 export type SerieHoraria = { last_hour: number; last_24h: number; by_hour: { hour: string; count: number }[] };
 export type Alertas = {
@@ -67,7 +68,21 @@ export type LojaLinha = {
   owner_id: string;
   owner_name: string;
   professionals: number;
+  active_test_id?: string | null;
+  active_test_name?: string | null;
   created_at: string;
+};
+
+export type LojaDoTeste = { establishment_id: string; establishment_name: string; joined_at: string; left_at?: string | null };
+export type Teste = {
+  id: string;
+  name: string;
+  started_at: string;
+  ended_at?: string | null;
+  active: boolean;
+  attendances: number;
+  symbolic_amount: number;
+  establishments: LojaDoTeste[];
 };
 export type AuditoriaLinha = {
   id: string;
@@ -126,6 +141,13 @@ export const listarUsuarios = (q: string, page: number) =>
   api<Pagina<UsuarioLinha>>(`/admin/users${consulta({ q: q.trim(), page, size: TAMANHO_PAGINA })}`);
 export const listarLojas = (q: string, page: number) =>
   api<Pagina<LojaLinha>>(`/admin/establishments${consulta({ q: q.trim(), page, size: TAMANHO_PAGINA })}`);
+export const listarTestes = (q: string, page: number) =>
+  api<Pagina<Teste>>(`/admin/test-runs${consulta({ q: q.trim(), page, size: TAMANHO_PAGINA })}`);
+export const iniciarTeste = (name: string, establishment_ids: string[]) =>
+  api<Teste>("/admin/test-runs", { method: "POST", body: { name: name.trim(), establishment_ids } });
+export const tirarDoTeste = (testeId: string, lojaId: string) =>
+  api<Teste>(`/admin/test-runs/${testeId}/establishments/${lojaId}`, { method: "DELETE" });
+export const finalizarTeste = (testeId: string) => api<Teste>(`/admin/test-runs/${testeId}/end`, { method: "POST" });
 export const listarSuporte = (page: number) =>
   api<Pagina<MensagemSuporte>>(`/admin/support/messages${consulta({ page, size: TAMANHO_PAGINA })}`);
 export const listarMultas = (type: TipoMulta | "", test: "" | "false" | "true", q: string, page: number) =>
@@ -147,6 +169,7 @@ export const PERMISSAO_DA_ROTA: Record<string, string> = {
   "/usuarios": "USERS",
   "/estabelecimentos": "ESTABLISHMENTS",
   "/campanhas": "CAMPAIGNS",
+  "/testes": "ESTABLISHMENTS",
   "/dinheiro": "FINANCE",
   "/multas": "FINANCE",
   "/suporte": "SUPPORT",

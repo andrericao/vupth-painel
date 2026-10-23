@@ -9,6 +9,7 @@ import { Hoje } from "../Hoje";
 import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
 import { Multas } from "../Multas";
 import { Suporte } from "../Suporte";
+import { Testes } from "../Testes";
 
 jest.mock("../../lib/admin", () => ({
   ...jest.requireActual("../../lib/admin"),
@@ -21,6 +22,10 @@ jest.mock("../../lib/admin", () => ({
   listarAuditoria: jest.fn(),
   listarSuporte: jest.fn(),
   listarMultas: jest.fn(),
+  listarTestes: jest.fn(),
+  iniciarTeste: jest.fn(),
+  tirarDoTeste: jest.fn(),
+  finalizarTeste: jest.fn(),
 }));
 jest.mock("../../lib/lucro", () => ({ ...jest.requireActual("../../lib/lucro"), buscarLucro: jest.fn() }));
 const m = A as jest.Mocked<typeof A>;
@@ -250,6 +255,123 @@ describe("Ordem: do mais novo ao mais antigo", () => {
   });
 });
 
+const loja = (id: string, nome: string, x: Partial<A.LojaLinha> = {}): A.LojaLinha => ({
+  id,
+  name: nome,
+  status: "ACTIVE",
+  open_status: "OPEN",
+  owner_id: "o",
+  owner_name: "Dono",
+  professionals: 2,
+  created_at: "2026-10-01T12:00:00Z",
+  ...x,
+});
+
+describe("Estabelecimentos: iniciar e tirar do teste", () => {
+  it("marca lojas, pede o nome, inicia e recarrega; a loja em teste tem selo e sai pela linha", async () => {
+    m.listarLojas
+      .mockResolvedValueOnce(pagina([loja("l1", "Barbearia A"), loja("l2", "Barbearia B"), loja("l3", "Barbearia C", { active_test_id: "t9", active_test_name: "Piloto antigo" })]))
+      .mockResolvedValue(pagina([loja("l1", "Barbearia A", { active_test_id: "t1", active_test_name: "Piloto" })]));
+    m.iniciarTeste.mockResolvedValue({} as A.Teste);
+    m.tirarDoTeste.mockResolvedValue({} as A.Teste);
+    render(<Estabelecimentos />);
+    await screen.findByText("Barbearia A");
+    expect(screen.getByText("TESTE: Piloto antigo")).toBeTruthy();
+    expect(screen.queryByTestId("marcar-l3")).toBeNull();
+    expect(screen.queryByTestId("nome-do-teste")).toBeNull();
+    fireEvent.press(screen.getByTestId("marcar-l1"));
+    fireEvent.press(screen.getByTestId("marcar-l2"));
+    fireEvent.press(screen.getByTestId("marcar-l2"));
+    expect(screen.getByText("Iniciar teste com 1 loja")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("marcar-l2"));
+    expect(screen.getByText("Iniciar teste com 2 lojas")).toBeTruthy();
+    expect(screen.getByTestId("iniciar-teste")).toBeDisabled();
+    fireEvent.changeText(screen.getByTestId("nome-do-teste"), "  Piloto ");
+    fireEvent.press(screen.getByTestId("iniciar-teste"));
+    await waitFor(() => expect(m.iniciarTeste).toHaveBeenCalledWith("  Piloto ", ["l1", "l2"]));
+    expect(await screen.findByText("TESTE: Piloto")).toBeTruthy();
+    expect(screen.queryByTestId("nome-do-teste")).toBeNull();
+    fireEvent.press(screen.getByTestId("tirar-l1"));
+    await waitFor(() => expect(m.tirarDoTeste).toHaveBeenCalledWith("t1", "l1"));
+  });
+
+  it("limpar as marcas, e os erros do Backend em português", async () => {
+    m.listarLojas.mockResolvedValue(pagina([loja("l1", "Barbearia A")]));
+    m.iniciarTeste.mockRejectedValueOnce(new ApiError(409, "TEST_RUN_ALREADY_ACTIVE", "x")).mockRejectedValueOnce(new ApiError(422, null, "x")).mockRejectedValueOnce(new Error("Sem conexão"));
+    render(<Estabelecimentos />);
+    fireEvent.press(await screen.findByTestId("marcar-l1"));
+    fireEvent.press(screen.getByTestId("limpar-marcas"));
+    expect(screen.queryByTestId("iniciar-teste")).toBeNull();
+    fireEvent.press(screen.getByTestId("marcar-l1"));
+    fireEvent.changeText(screen.getByTestId("nome-do-teste"), "T");
+    fireEvent.press(screen.getByTestId("iniciar-teste"));
+    expect(await screen.findByText(/já está em outro teste ativo/)).toBeTruthy();
+    fireEvent.press(screen.getByTestId("iniciar-teste"));
+    expect(await screen.findByText(/Dê um nome ao teste/)).toBeTruthy();
+    fireEvent.press(screen.getByTestId("iniciar-teste"));
+    expect(await screen.findByText("Sem conexão")).toBeTruthy();
+  });
+
+  it("busca volta à primeira página", async () => {
+    m.listarLojas.mockResolvedValue(pagina([loja("l1", "Barbearia A")], 45));
+    render(<Estabelecimentos />);
+    await screen.findByText("Barbearia A");
+    fireEvent.press(screen.getByTestId("proxima"));
+    await waitFor(() => expect(m.listarLojas).toHaveBeenLastCalledWith("", 1));
+    fireEvent.changeText(screen.getByTestId("busca"), "bar");
+    fireEvent.press(screen.getByTestId("buscar"));
+    await waitFor(() => expect(m.listarLojas).toHaveBeenLastCalledWith("bar", 0));
+  });
+});
+
+describe("Testes", () => {
+  const teste = (id: string, x: Partial<A.Teste> = {}): A.Teste => ({
+    id,
+    name: "Piloto",
+    started_at: "2026-10-20T12:00:00Z",
+    ended_at: null,
+    active: true,
+    attendances: 3,
+    symbolic_amount: 120,
+    establishments: [
+      { establishment_id: "l1", establishment_name: "Barbearia A", joined_at: "2026-10-20T12:00:00Z", left_at: null },
+      { establishment_id: "l2", establishment_name: "Barbearia B", joined_at: "2026-10-20T12:00:00Z", left_at: "2026-10-21T12:00:00Z" },
+    ],
+    ...x,
+  });
+
+  it("lista do mais novo ao mais antigo com lojas, saída e total; finaliza com confirmação", async () => {
+    m.listarTestes
+      .mockResolvedValueOnce(pagina([teste("velho", { name: "Antigo", active: false, ended_at: "2026-10-22T12:00:00Z", attendances: 1 }), teste("novo", { started_at: "2026-10-23T12:00:00Z" })]))
+      .mockResolvedValue(pagina([]));
+    m.finalizarTeste.mockResolvedValue({} as A.Teste);
+    render(<Testes />);
+    await screen.findByTestId("teste-novo");
+    expect(screen.getAllByTestId(/^teste-/).map((n) => n.props.testID)).toEqual(["teste-novo", "teste-velho"]);
+    expect(screen.getAllByText(/saiu/)).toHaveLength(2);
+    expect(screen.getByText("Finalizado")).toBeTruthy();
+    expect(screen.getByText("1 atendimento", { exact: false })).toBeTruthy();
+    expect(screen.queryByTestId("finalizar-velho")).toBeNull();
+    fireEvent.press(screen.getByTestId("finalizar-novo"));
+    expect(m.finalizarTeste).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("confirmar-novo"));
+    await waitFor(() => expect(m.finalizarTeste).toHaveBeenCalledWith("novo"));
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+  });
+
+  it("erro ao finalizar e busca pelo nome", async () => {
+    m.listarTestes.mockResolvedValue(pagina([teste("t1")]));
+    m.finalizarTeste.mockRejectedValueOnce(new ApiError(409, "TEST_RUN_ALREADY_ENDED", "x"));
+    render(<Testes />);
+    fireEvent.press(await screen.findByTestId("finalizar-t1"));
+    fireEvent.press(screen.getByTestId("confirmar-t1"));
+    expect(await screen.findByText("Este teste já foi finalizado.")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("busca"), "pil");
+    fireEvent.press(screen.getByTestId("buscar"));
+    await waitFor(() => expect(m.listarTestes).toHaveBeenLastCalledWith("pil", 0));
+  });
+});
+
 describe("Multas", () => {
   const multa = (id: string, x: Partial<A.MultaLinha> = {}): A.MultaLinha => ({
     id,
@@ -363,6 +485,19 @@ describe("Dinheiro: o i de cada card", () => {
     items: [],
     totals: { key: "total", attendances, service: parteZero, penalty: parteZero, total: parteZero },
     services_without_split: semDivisao,
+  });
+
+  it("o teste aparece à parte, simbólico, com o i; sem teste o card não existe", async () => {
+    (L.buscarLucro as jest.Mock).mockResolvedValue(lucro(2, 0));
+    m.lerFinanceiro.mockResolvedValueOnce({ ...fin, pilot: { attendances: 1, amount: 35 } });
+    const { unmount } = render(<Dinheiro hoje="2026-10-22" />);
+    expect(await screen.findByTestId("teste-simbolico")).toHaveTextContent(/1 atendimento · R\$ 35,00/);
+    expect(screen.getByLabelText("Como é calculado: Teste (simbólico)")).toBeTruthy();
+    unmount();
+    m.lerFinanceiro.mockResolvedValueOnce(fin);
+    render(<Dinheiro hoje="2026-10-22" />);
+    await screen.findByText("Indicações (créditos)");
+    expect(screen.queryByTestId("teste-simbolico")).toBeNull();
   });
 
   it("toque abre a dica do cálculo, outro toque e o Esc fecham; o fim lembra dos antigos", async () => {

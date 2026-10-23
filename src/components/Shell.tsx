@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from "r
 import {
   Bell,
   CircleDollarSign,
+  FlaskConical,
   Gavel,
   House,
   LogOut,
@@ -31,6 +32,7 @@ export const MENU: ItemMenu[] = [
   { rota: "/", nome: "Hoje", Icone: House },
   { rota: "/usuarios", nome: "Usuários", Icone: Users },
   { rota: "/estabelecimentos", nome: "Estabelecimentos", Icone: Store },
+  { rota: "/testes", nome: "Testes", Icone: FlaskConical },
   { rota: "/campanhas", nome: "Campanhas", Icone: Megaphone },
   { rota: "/dinheiro", nome: "Dinheiro", Icone: CircleDollarSign },
   { rota: "/multas", nome: "Multas", Icone: Gavel },

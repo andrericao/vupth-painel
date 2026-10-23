@@ -157,6 +157,9 @@ function LinhaParte({ nome, p, dica, forte }: { nome: string; p: Parte; dica: st
   );
 }
 
+export const DICA_TESTE =
+  "Atendimentos de lojas em teste, no mesmo período. O valor é simbólico: fica fora do faturamento, do lucro e das multas reais acima.";
+
 export const FIM_DICA = "Atendimentos antigos, sem a divisão gravada, entram só no faturamento bruto.";
 export const DICA = {
   bruto: "Soma do valor total de todos os atendimentos concluídos do período, pagos ou não.",
@@ -228,6 +231,17 @@ function Financeiro({ periodo, hoje, lucro }: { periodo: Periodo; hoje: string; 
               </View>
             ))}
           </Cartao>
+          {r.dado.pilot ? (
+            <Cartao titulo="Teste (simbólico)">
+              <View className="flex-row flex-wrap items-center gap-2">
+                <Text testID="teste-simbolico" className="text-vupth-textPrimary">
+                  {r.dado.pilot.attendances} {r.dado.pilot.attendances === 1 ? "atendimento" : "atendimentos"} ·{" "}
+                  <Text className="font-mono">{formatarReais(r.dado.pilot.amount)}</Text>
+                </Text>
+                <Dica rotulo="Teste (simbólico)" texto={DICA_TESTE} />
+              </View>
+            </Cartao>
+          ) : null}
           <Cartao titulo="Indicações (créditos)">
             <Text className="text-vupth-textPrimary">
               Total {formatarReais(r.dado.referral.credits_total)} · pagos {formatarReais(r.dado.referral.credits_paid)} · a pagar{" "}
