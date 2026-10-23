@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from "r
 import {
   Bell,
   CircleDollarSign,
+  Gavel,
   House,
   LogOut,
   Megaphone,
@@ -32,6 +33,7 @@ export const MENU: ItemMenu[] = [
   { rota: "/estabelecimentos", nome: "Estabelecimentos", Icone: Store },
   { rota: "/campanhas", nome: "Campanhas", Icone: Megaphone },
   { rota: "/dinheiro", nome: "Dinheiro", Icone: CircleDollarSign },
+  { rota: "/multas", nome: "Multas", Icone: Gavel },
   { rota: "/suporte", nome: "Suporte", Icone: MessageSquare },
   { rota: "/alertas", nome: "Alertas", Icone: Bell },
   { rota: "/auditoria", nome: "Auditoria", Icone: ScrollText },

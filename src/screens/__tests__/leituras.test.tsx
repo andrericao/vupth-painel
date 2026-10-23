@@ -7,6 +7,7 @@ import { Alertas } from "../Alertas";
 import { comDivisao, Dinheiro } from "../Dinheiro";
 import { Hoje } from "../Hoje";
 import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
+import { Multas } from "../Multas";
 import { Suporte } from "../Suporte";
 
 jest.mock("../../lib/admin", () => ({
@@ -19,6 +20,7 @@ jest.mock("../../lib/admin", () => ({
   listarLojas: jest.fn(),
   listarAuditoria: jest.fn(),
   listarSuporte: jest.fn(),
+  listarMultas: jest.fn(),
 }));
 jest.mock("../../lib/lucro", () => ({ ...jest.requireActual("../../lib/lucro"), buscarLucro: jest.fn() }));
 const m = A as jest.Mocked<typeof A>;
@@ -245,6 +247,56 @@ describe("Ordem: do mais novo ao mais antigo", () => {
     await screen.findByText("Recente");
     const nomes = screen.getAllByText(/^(Antiga|Recente)$/).map((n) => n.props.children);
     expect(nomes).toEqual(["Recente", "Antiga"]);
+  });
+});
+
+describe("Multas", () => {
+  const multa = (id: string, x: Partial<A.MultaLinha> = {}): A.MultaLinha => ({
+    id,
+    type: "LATE_ARRIVAL",
+    client_id: "u1",
+    client_name: "Ana",
+    establishment_id: "e1",
+    establishment_name: "Barbearia",
+    amount: 5,
+    state: "GENERATED",
+    test: false,
+    created_at: "2026-10-20T12:00:00Z",
+    ...x,
+  });
+
+  it("lista do mais novo ao mais antigo, marca as de teste e filtra por tipo, teste e busca", async () => {
+    m.listarMultas.mockResolvedValue({
+      items: [
+        multa("velha"),
+        multa("nova", { type: "NO_SHOW", state: "CHARGED", test: true, created_at: "2026-10-22T12:00:00Z", client_name: "Bia" }),
+      ],
+      page: 0,
+      size: 20,
+      total: 2,
+    });
+    render(<Multas />);
+    expect(await screen.findByTestId("multa-nova")).toBeTruthy();
+    expect(m.listarMultas).toHaveBeenLastCalledWith("", "", "", 0);
+    expect(screen.getAllByTestId(/^multa-/).map((n) => n.props.testID)).toEqual(["multa-nova", "multa-velha"]);
+    expect(within(screen.getByTestId("multa-nova")).getByText("Falta")).toBeTruthy();
+    expect(screen.getAllByText("Teste")).toHaveLength(1);
+    fireEvent.press(screen.getByTestId("tipo-LATE_CANCEL"));
+    await waitFor(() => expect(m.listarMultas).toHaveBeenLastCalledWith("LATE_CANCEL", "", "", 0));
+    fireEvent.press(screen.getByTestId("teste-true"));
+    await waitFor(() => expect(m.listarMultas).toHaveBeenLastCalledWith("LATE_CANCEL", "true", "", 0));
+    fireEvent.changeText(screen.getByTestId("busca"), "  Ana ");
+    fireEvent.press(screen.getByTestId("buscar"));
+    await waitFor(() => expect(m.listarMultas).toHaveBeenLastCalledWith("LATE_CANCEL", "true", "  Ana ", 0));
+  });
+
+  it("sem multa no filtro, e erro de permissão", async () => {
+    m.listarMultas.mockResolvedValueOnce({ items: [], page: 0, size: 20, total: 0 });
+    render(<Multas />);
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+    m.listarMultas.mockRejectedValueOnce(new ApiError(403, "ADMIN_PERMISSION_DENIED", "negado"));
+    fireEvent.press(screen.getByTestId("tipo-NO_SHOW"));
+    expect(await screen.findByText(/não tem a permissão/)).toBeTruthy();
   });
 });
 

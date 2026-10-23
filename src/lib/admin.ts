@@ -92,6 +92,21 @@ export type MensagemSuporte = {
   created_at: string;
 };
 
+export type TipoMulta = "LATE_ARRIVAL" | "NO_SHOW" | "LATE_CANCEL" | "PAYMENT_PENDING";
+export type MultaLinha = {
+  id: string;
+  type: TipoMulta;
+  client_id: string;
+  client_name: string;
+  establishment_id: string;
+  establishment_name: string;
+  amount: number;
+  state: "GENERATED" | "CHARGED";
+  attendance_id?: string;
+  test: boolean;
+  created_at: string;
+};
+
 export const TAMANHO_PAGINA = 20;
 
 function consulta(params: Record<string, string | number | undefined>): string {
@@ -113,6 +128,8 @@ export const listarLojas = (q: string, page: number) =>
   api<Pagina<LojaLinha>>(`/admin/establishments${consulta({ q: q.trim(), page, size: TAMANHO_PAGINA })}`);
 export const listarSuporte = (page: number) =>
   api<Pagina<MensagemSuporte>>(`/admin/support/messages${consulta({ page, size: TAMANHO_PAGINA })}`);
+export const listarMultas = (type: TipoMulta | "", test: "" | "false" | "true", q: string, page: number) =>
+  api<Pagina<MultaLinha>>(`/admin/multas${consulta({ type, test, q: q.trim(), page, size: TAMANHO_PAGINA })}`);
 export const listarAuditoria = (page: number) =>
   api<Pagina<AuditoriaLinha>>(`/admin/audit${consulta({ page, size: TAMANHO_PAGINA })}`);
 
@@ -131,6 +148,7 @@ export const PERMISSAO_DA_ROTA: Record<string, string> = {
   "/estabelecimentos": "ESTABLISHMENTS",
   "/campanhas": "CAMPAIGNS",
   "/dinheiro": "FINANCE",
+  "/multas": "FINANCE",
   "/suporte": "SUPPORT",
   "/alertas": "ALERTS",
   "/auditoria": "AUDIT",
