@@ -39,7 +39,8 @@ module.exports = {
     plugin(({ addBase }) =>
       addBase({
         ":root": variaveis(CORES.claro),
-        "@media (prefers-color-scheme: dark)": { ":root": variaveis(CORES.escuro) },
+        "@media (prefers-color-scheme: dark)": { ":root:not([data-tema])": variaveis(CORES.escuro) },
+        ':root[data-tema="escuro"]': variaveis(CORES.escuro),
       }),
     ),
   ],

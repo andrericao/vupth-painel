@@ -7,16 +7,20 @@ import {
   LogOut,
   Megaphone,
   MessageSquare,
+  Monitor,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   ScrollText,
   ShieldCheck,
   Store,
+  Sun,
   Users,
   type LucideIcon,
 } from "lucide-react-native";
 
 import { podeVer } from "../lib/admin";
+import { escolherTema, proximaEscolha, useEscolha, type Escolha } from "../escolhaDeTema";
 import { useCor } from "../useCor";
 
 export type ItemMenu = { rota: string; nome: string; Icone: LucideIcon };
@@ -58,6 +62,14 @@ function guardarRecolhido(v: boolean): void {
   }
 }
 
+const ROTULO_TEMA: Record<Escolha, string> = { sistema: "sistema", claro: "claro", escuro: "escuro" };
+const ICONE_TEMA: Record<Escolha, LucideIcon> = { sistema: Monitor, claro: Sun, escuro: Moon };
+
+function IconeTema({ escolha, color, size }: { escolha: Escolha; color: string; size: number }) {
+  const Icone = ICONE_TEMA[escolha];
+  return <Icone color={color} size={size} />;
+}
+
 export function ativo(rota: string, atual: string): boolean {
   return rota === "/" ? atual === "/" : atual === rota || atual.startsWith(`${rota}/`);
 }
@@ -69,6 +81,7 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
   const menu = MENU.filter((m) => podeVer(m.rota, permissoes));
   const { width } = useWindowDimensions();
   const cor = useCor();
+  const escolha = useEscolha();
   const celular = width < LARGURA_CELULAR;
   const [recolhido, setRecolhido] = useState(lerRecolhido);
   const alternar = () => {
@@ -81,6 +94,14 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
       <View className="flex-1 bg-vupth-background">
         <View className="flex-row items-center justify-between bg-vupth-surface px-4 py-3">
           <Text className="text-lg font-heading text-vupth-textPrimary">vupth · painel</Text>
+          <Pressable
+            testID="tema"
+            accessibilityRole="button"
+            accessibilityLabel={`Tema: ${ROTULO_TEMA[escolha]}. Trocar`}
+            onPress={() => escolherTema(proximaEscolha(escolha))}
+          >
+            <IconeTema escolha={escolha} color={cor.textPrimary} size={20} />
+          </Pressable>
           <Pressable testID="sair" accessibilityRole="button" accessibilityLabel="Sair" onPress={onSair}>
             <LogOut color={cor.textPrimary} size={20} />
           </Pressable>
@@ -125,6 +146,13 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
               {nome}
             </Text>
           )}
+          <ItemLateral
+            testID="tema"
+            nome={`Tema: ${ROTULO_TEMA[escolha]}`}
+            Icone={ICONE_TEMA[escolha]}
+            recolhido={recolhido}
+            onPress={() => escolherTema(proximaEscolha(escolha))}
+          />
           <ItemLateral testID="sair" nome="Sair" Icone={LogOut} recolhido={recolhido} onPress={onSair} />
           <ItemLateral
             testID="recolher-menu"

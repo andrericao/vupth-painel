@@ -15,6 +15,13 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <script>
+      // Tema escolhido (claro, escuro ou sistema): aplicado antes de pintar, sem piscar. Ver src/escolhaDeTema.ts.
+      try {
+        var t = localStorage.getItem("vupth-painel:tema");
+        if (t === "claro" || t === "escuro") document.documentElement.setAttribute("data-tema", t);
+      } catch (e) {}
+    </script>
     <style id="expo-reset">
       html,
       body {
