@@ -58,7 +58,7 @@ export function Suporte() {
                 className="gap-1"
               >
                 <View className="flex-row flex-wrap items-center justify-between gap-2">
-                  <Text className="text-base font-semibold text-vupth-textPrimary">{m.subject || "Sem assunto"}</Text>
+                  <Text className="text-base font-heading text-vupth-textPrimary">{m.subject || "Sem assunto"}</Text>
                   <Text className="text-xs text-vupth-textSecondary">{dataHora(m.created_at)}</Text>
                 </View>
                 <Text className="text-vupth-textSecondary">
@@ -82,7 +82,7 @@ export function Suporte() {
                 accessibilityLabel={visto ? "Ocultar o e-mail" : "Mostrar o e-mail"}
                 onPress={() => setEmailsVistos((l) => alternar(l, m.id))}
               >
-                <Text className="text-vupth-forest">
+                <Text className="text-vupth-textPrimary">
                   {visto ? m.email : mascararEmail(m.email)} · {visto ? "ocultar" : "mostrar"}
                 </Text>
               </Pressable>

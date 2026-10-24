@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
   Modelo do index.html da web (pagina unica). O Expo le ESTE arquivo no lugar do dele e preenche
-  o idioma e o titulo. Existe para levar o favicon do V (v-estilizado-pelo-front, Andre, 18/10;
-  arquivos copiados de vupth-partner/assets/marca/). O reset de estilo e o recomendado do react-native-web.
+  o idioma e o titulo. Existe para levar o favicon do V (fontes/design/marca da Design, DEC-118;
+  arquivos copiados de vupth-docs/fontes/design/marca/). O reset de estilo e o recomendado do react-native-web.
 -->
 <html lang="%LANG_ISO_CODE%">
   <head>
@@ -15,6 +15,13 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <script>
+      // Tema escolhido (claro, escuro ou sistema): aplicado antes de pintar, sem piscar. Ver src/escolhaDeTema.ts.
+      try {
+        var t = localStorage.getItem("vupth-painel:tema");
+        if (t === "claro" || t === "escuro") document.documentElement.setAttribute("data-tema", t);
+      } catch (e) {}
+    </script>
     <style id="expo-reset">
       html,
       body {

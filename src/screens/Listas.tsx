@@ -5,13 +5,14 @@ import { Cartao, Campo, Estado } from "../components/ui";
 import { Leitura, Paginacao, Titulo } from "../components/leitura";
 import {
   listarAuditoria,
-  listarLojas,
   listarUsuarios,
   TAMANHO_PAGINA,
   type Pagina,
 } from "../lib/admin";
 import { dataHora, maisNovoPrimeiro } from "../lib/format";
 import { useCarga } from "../lib/useCarga";
+
+export { Estabelecimentos } from "./Estabelecimentos";
 
 export const NOME_PAPEL: Record<string, string> = {
   CLIENT: "Cliente",
@@ -61,7 +62,7 @@ function Lista<T>({
           <Text
             testID="buscar"
             accessibilityRole="button"
-            className="pb-3 font-semibold text-vupth-forest"
+            className="pb-3 font-heading text-vupth-textPrimary"
             onPress={() => {
               setPagina(0);
               setQ(digitado);
@@ -103,41 +104,13 @@ export function Usuarios() {
         corpo: (
           <View className="gap-1">
             <View className="flex-row flex-wrap items-center justify-between gap-2">
-              <Text className="text-base font-semibold text-vupth-textPrimary">{u.name}</Text>
+              <Text className="text-base font-heading text-vupth-textPrimary">{u.name}</Text>
               {u.deleted ? <Estado tom="erro" texto="Excluído" /> : <Estado tom={u.active ? "ok" : "atencao"} texto={u.active ? "Ativo" : "Inativo"} />}
             </View>
             <Text className="text-vupth-textSecondary">{u.email}</Text>
             <Text className="text-vupth-textSecondary">
               {u.roles.map((r) => NOME_PAPEL[r] ?? r).join(", ") || "Sem papel"} · desde {dataHora(u.created_at)}
             </Text>
-          </View>
-        ),
-      })}
-    />
-  );
-}
-
-export function Estabelecimentos() {
-  return (
-    <Lista
-      titulo="Estabelecimentos"
-      resumo="Cada loja com o estado de agora e o dono."
-      chave="lojas"
-      comBusca
-      buscar={listarLojas}
-      datado={(l) => l.created_at}
-      linha={(l) => ({
-        id: l.id,
-        corpo: (
-          <View className="gap-1">
-            <View className="flex-row flex-wrap items-center justify-between gap-2">
-              <Text className="text-base font-semibold text-vupth-textPrimary">{l.name}</Text>
-              <Estado tom={l.open_status === "OPEN" ? "ok" : "neutro"} texto={l.open_status === "OPEN" ? "Aberta" : "Fechada"} />
-            </View>
-            <Text className="text-vupth-textSecondary">
-              Dono: {l.owner_name} · {l.professionals} {l.professionals === 1 ? "profissional" : "profissionais"} · {l.status}
-            </Text>
-            <Text className="text-vupth-textSecondary">Criada em {dataHora(l.created_at)}</Text>
           </View>
         ),
       })}
@@ -159,7 +132,7 @@ export function Auditoria() {
         corpo: (
           <View className="gap-1">
             <View className="flex-row flex-wrap items-center justify-between gap-2">
-              <Text className="font-semibold text-vupth-textPrimary">
+              <Text className="font-heading text-vupth-textPrimary">
                 {a.method} {a.path}
                 {a.query ? `?${a.query}` : ""}
               </Text>

@@ -21,6 +21,9 @@ type Bonificacao<Vazio> = {
   payout_day: number | Vazio;
 };
 
+/** Sobre qual valor vale o limite do desconto: o preço que o cliente vê (com taxa) ou o que o profissional recebe (sem taxa). */
+export type BaseDoValor = "WITH_FEE" | "WITHOUT_FEE";
+
 export type Campaign = {
   id: string;
   name: string;
@@ -35,11 +38,13 @@ export type Campaign = {
   ends_at: string;
   weekdays?: string;
   max_redemptions?: number;
+  max_total_cost?: number;
   redemptions: number;
   new_clients_only: boolean;
   active: boolean;
   status: CampaignStatus;
   benefit?: CampaignBenefit;
+  benefit_base?: BaseDoValor;
 } & Partial<Bonificacao<never>>;
 
 export type CampaignRequest = {
@@ -55,10 +60,26 @@ export type CampaignRequest = {
   ends_at: string;
   weekdays: string | null;
   max_redemptions: number | null;
+  max_total_cost: number | null;
   new_clients_only: boolean;
+  benefit_base: BaseDoValor | null;
 } & Bonificacao<null>;
 
 export const listarCampanhas = () => api<Campaign[]>("/admin/campaigns");
+export type Funil = {
+  campaign_id: string;
+  name: string;
+  type: CampaignType;
+  from: string;
+  to: string;
+  link_opened: number | null;
+  link_opened_measured: boolean;
+  accounts_created: number;
+  first_cut_done: number;
+  redeemed: number;
+  redeemers: { name: string; redeemed_at: string }[];
+};
+export const lerFunil = (id: string) => api<Funil>(`/admin/campaigns/${id}/funnel`);
 export const criarCampanha = (r: CampaignRequest) => api<Campaign>("/admin/campaigns", { method: "POST", body: r });
 export const editarCampanha = (id: string, r: CampaignRequest) =>
   api<Campaign>(`/admin/campaigns/${id}`, { method: "PUT", body: r });
@@ -90,11 +111,13 @@ export type Formulario = {
   codigo: string;
   publico: CampaignAudience | "TODOS";
   beneficio: Beneficio;
+  baseDoValor: BaseDoValor;
   valor: string;
   inicio: string; // dd/mm/aaaa (a máscara do campo)
   fim: string; // dd/mm/aaaa
   dias: string[];
   limite: string;
+  teto: string;
   soClientesNovos: boolean;
   pctProfissional: string;
   pctDono: string;
@@ -112,11 +135,13 @@ export function formularioVazio(hoje: string): Formulario {
     codigo: "",
     publico: "TODOS",
     beneficio: "reais",
+    baseDoValor: "WITH_FEE",
     valor: "",
     inicio: isoParaBr(hoje),
     fim: "",
     dias: [],
     limite: "",
+    teto: "",
     soClientesNovos: false,
     // DEC-73: a bonificação nasce em branco; o Andre preenche campanha a campanha.
     pctProfissional: "",
@@ -141,11 +166,13 @@ export function formularioDe(c: Campaign): Formulario {
     codigo: c.code ?? "",
     publico: c.audience ?? "TODOS",
     beneficio: c.type === "FEE_WAIVER" ? "taxa-zero" : c.value_percent != null ? "porcento" : "reais",
+    baseDoValor: c.benefit_base ?? "WITH_FEE",
     valor: c.value_percent != null ? String(c.value_percent).replace(".", ",") : c.value_amount != null ? valorParaCampo(c.value_amount) : "",
     inicio: isoParaBr(diaSP(c.starts_at)),
     fim: isoParaBr(diaSP(c.ends_at)),
     dias: c.weekdays ? c.weekdays.split(",") : [],
     limite: c.max_redemptions != null ? String(c.max_redemptions) : "",
+    teto: c.max_total_cost != null ? valorParaCampo(c.max_total_cost) : "",
     soClientesNovos: c.new_clients_only,
     pctProfissional: texto(c.referral_professional_percent),
     pctDono: texto(c.referral_owner_percent),
@@ -189,6 +216,11 @@ export function validar(f: Formulario): Partial<Record<keyof Formulario, string>
     const l = Number(f.limite.trim());
     if (!Number.isInteger(l) || l < 1) erros.limite = "Um número inteiro, 1 ou mais.";
   }
+  if (f.teto.trim()) {
+    const t = numero(f.teto);
+    if (t == null || t < 0.01) erros.teto = "Informe um valor de R$ 0,01 para cima.";
+    else if (t >= 1e8) erros.teto = "Valor grande demais.";
+  }
   if (f.modo === "link") validarBonificacao(f, erros);
   return erros;
 }
@@ -228,7 +260,9 @@ export function paraRequest(f: Formulario): CampaignRequest {
     ends_at: `${brParaIso(f.fim)}T23:59:59-03:00`,
     weekdays: f.dias.length ? DIAS.filter((d) => f.dias.includes(d)).join(",") : null,
     max_redemptions: f.limite.trim() ? Number(f.limite.trim()) : null,
+    max_total_cost: f.teto.trim() ? numero(f.teto) : null,
     new_clients_only: f.soClientesNovos,
+    benefit_base: tipo === "DISCOUNT" ? f.baseDoValor : null,
     referral_professional_percent: tipo === "REFERRAL_BONUS" ? numero(f.pctProfissional) : null,
     referral_owner_percent: tipo === "REFERRAL_BONUS" ? numero(f.pctDono) : null,
     referral_scope: tipo === "REFERRAL_BONUS" && f.quemConta ? f.quemConta : null,
@@ -238,6 +272,12 @@ export function paraRequest(f: Formulario): CampaignRequest {
 }
 
 /* ───────── Leitura ───────── */
+
+export const NOME_BASE: Record<BaseDoValor, string> = { WITH_FEE: "Valor com taxa", WITHOUT_FEE: "Valor sem taxa" };
+export const DICA_TETO =
+  "Quanto a campanha pode gastar no total (a soma dos descontos ou dos prêmios). Ao chegar nesse valor ela para de valer. Vazio = sem teto de gasto.";
+export const DICA_BASE =
+  "Com taxa: o limite é o preço que o cliente vê. Sem taxa: o limite é o que o profissional recebe. O desconto nunca passa do valor do corte e os cupons não se acumulam.";
 
 export const NOME_STATUS: Record<CampaignStatus, string> = {
   SCHEDULED: "Agendada",
@@ -299,4 +339,17 @@ export function descreverBonificacao(c: Campaign): string | null {
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+/** DEC-113: não existe um link único da campanha — o link é de cada pessoa; o resumo diz onde cada público participa. */
+export function comoParticipar(c: Campaign): string | null {
+  if (c.type !== "REFERRAL_BONUS") return null;
+  const onde =
+    c.audience === "CLIENT"
+      ? "Client"
+      : c.audience === "PROFESSIONAL" || c.audience === "OWNER"
+        ? "Partner"
+        : "Client (cliente) ou Partner (profissional e dono)";
+  const privada = c.visibility === "PRIVATE" ? " e informando o código de participação" : "";
+  return `Participa pelo bloco de campanhas da Home do ${onde}, tocando em Participar${privada}.`;
 }

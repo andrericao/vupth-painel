@@ -1,8 +1,9 @@
 import { Info } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
-import { Aviso, Botao } from "./ui";
+import { useCor } from "../useCor";
+import { Aviso, Botao, Carregando } from "./ui";
 
 /** Estado de uma leitura: carregando, erro com "Tentar de novo" ou o conteúdo. */
 export function Leitura({
@@ -23,14 +24,14 @@ export function Leitura({
         <Botao testID="tentar" titulo="Tentar de novo" tipo="secundario" onPress={onTentar} />
       </View>
     );
-  if (carregando) return <ActivityIndicator testID="carregando" color="#163300" />;
+  if (carregando) return <Carregando />;
   return <>{children}</>;
 }
 
 export function Titulo({ titulo, resumo }: { titulo: string; resumo: string }) {
   return (
     <View className="gap-1">
-      <Text className="text-2xl font-bold text-vupth-textPrimary">{titulo}</Text>
+      <Text className="text-2xl font-display text-vupth-textPrimary">{titulo}</Text>
       <Text className="text-vupth-textSecondary">{resumo}</Text>
     </View>
   );
@@ -38,6 +39,7 @@ export function Titulo({ titulo, resumo }: { titulo: string; resumo: string }) {
 
 /** O "i" de informação: toque ou foco abre uma dica curta com o cálculo; Esc, outro toque ou sair do foco fecham. */
 export function Dica({ rotulo, texto }: { rotulo: string; texto: string }) {
+  const cor = useCor();
   const [aberta, setAberta] = useState(false);
   useEffect(() => {
     if (!aberta) return;
@@ -59,13 +61,13 @@ export function Dica({ rotulo, texto }: { rotulo: string; texto: string }) {
         onBlur={() => setAberta(false)}
         hitSlop={8}
       >
-        <Info color="#454745" size={16} />
+        <Info color={cor.textSecondary} size={16} />
       </Pressable>
       {aberta ? (
         <View
           testID={`dica-${rotulo}`}
           accessibilityRole="alert"
-          className="absolute right-0 top-6 z-10 w-64 rounded-lg border border-vupth-border bg-white p-3"
+          className="absolute right-0 top-6 z-10 w-64 rounded-lg border border-vupth-border bg-vupth-background p-3"
         >
           <Text className="text-xs text-vupth-textPrimary">{texto}</Text>
         </View>
@@ -89,13 +91,13 @@ export function Numero({
   return (
     <View
       testID={`numero-${rotulo}`}
-      className="min-w-[150px] grow basis-[30%] gap-1 rounded-card border border-vupth-border bg-white p-4"
+      className="min-w-[150px] grow basis-[30%] gap-1 rounded-card bg-vupth-surface p-4"
     >
       <View className="flex-row items-center justify-between gap-2">
         <Text className="text-xs uppercase text-vupth-textSecondary">{rotulo}</Text>
         {dica ? <Dica rotulo={rotulo} texto={dica} /> : null}
       </View>
-      <Text className="text-3xl font-bold text-vupth-textPrimary">{valor}</Text>
+      <Text className="text-3xl font-mono text-vupth-textPrimary">{valor}</Text>
       {variacao ? <Text className="text-xs text-vupth-textSecondary">{variacao} vs. semana passada</Text> : null}
     </View>
   );

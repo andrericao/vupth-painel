@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Corpo em Inter: o Text do react-native-web traz `font: 14px System`; a regra de baixo vale para o que não escolhe família. */
+@layer base {
+  [dir] {
+    font-family: Inter_400Regular, system-ui, sans-serif;
+  }
+}

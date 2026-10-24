@@ -43,10 +43,10 @@ export function Entrar({ onEntrou }: { onEntrou: () => void }) {
   }
 
   return (
-    <View className="flex-1 items-center justify-center bg-vupth-forest p-4">
-      <View className="w-full max-w-sm gap-5 rounded-card bg-white p-8">
+    <View className="flex-1 items-center justify-center bg-vupth-background p-4">
+      <View className="w-full max-w-sm gap-5 rounded-card bg-vupth-surface p-8">
         <View className="gap-1">
-          <Text className="text-2xl font-bold text-vupth-textPrimary">vupth · painel</Text>
+          <Text className="text-2xl font-heading text-vupth-textPrimary">vupth · painel</Text>
           <Text className="text-vupth-textSecondary">Só para a conta de administrador.</Text>
         </View>
         {etapa ? (
