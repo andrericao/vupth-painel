@@ -145,6 +145,31 @@ export type SaldoDoApp = {
   asaas_error?: string;
 };
 
+/** Uma cobrança do relatório do sandbox: para onde vai cada centavo (GET /admin/finance/asaas/sandbox/report). */
+export type CobrancaAsaas = {
+  payment_id: string;
+  attendance_id?: string;
+  billing_type?: string;
+  status?: string;
+  list_price?: number;
+  coupon_discount?: number;
+  bonus?: number;
+  professional_planned?: number;
+  asaas_fee_real?: number;
+  fee_charged_in_price?: number;
+  fee_leftover?: number;
+  app_net?: number;
+  difference_cents?: number;
+  note?: string;
+};
+
+export type RelatorioAsaas = {
+  payments: CobrancaAsaas[];
+  totals: { client_paid: number; asaas_fee_real: number; professional_planned: number; app_net: number };
+};
+
+export type ConexaoAsaas = { connected: boolean; mode: string; configured: boolean };
+
 export const TAMANHO_PAGINA = 20;
 
 function consulta(params: Record<string, string | number | undefined>): string {
@@ -180,6 +205,8 @@ export const listarPremiosPendentes = () => api<PremioPendente[]>("/admin/referr
 export const liberarPremio = (campaign_id: string, beneficiary_id?: string) =>
   api<{ released_credits: number; released_at: string }>("/admin/referrals/release", { method: "POST", body: { campaign_id, beneficiary_id } });
 export const lerSaldoDoApp = () => api<SaldoDoApp>("/admin/finance/app-balance");
+export const lerConexaoAsaas = () => api<ConexaoAsaas>("/admin/settings/asaas-connection");
+export const lerRelatorioAsaas = () => api<RelatorioAsaas>("/admin/finance/asaas/sandbox/report");
 export const listarSuporte = (page: number) =>
   api<Pagina<MensagemSuporte>>(`/admin/support/messages${consulta({ page, size: TAMANHO_PAGINA })}`);
 export const listarMultas = (type: TipoMulta | "", test: "" | "false" | "true", q: string, page: number) =>
@@ -206,6 +233,7 @@ export const PERMISSAO_DA_ROTA: Record<string, string> = {
   "/dividas": "FINANCE",
   "/premios": "FINANCE",
   "/saldo": "FINANCE",
+  "/asaas": "FINANCE",
   "/multas": "FINANCE",
   "/suporte": "SUPPORT",
   "/alertas": "ALERTS",

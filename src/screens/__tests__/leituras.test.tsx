@@ -11,6 +11,7 @@ import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
 import { Multas } from "../Multas";
 import { Premios } from "../Premios";
 import { Saldo } from "../Saldo";
+import { Asaas } from "../Asaas";
 import { Suporte } from "../Suporte";
 import { Testes } from "../Testes";
 
@@ -33,6 +34,8 @@ jest.mock("../../lib/admin", () => ({
   listarPremiosPendentes: jest.fn(),
   liberarPremio: jest.fn(),
   lerSaldoDoApp: jest.fn(),
+  lerConexaoAsaas: jest.fn(),
+  lerRelatorioAsaas: jest.fn(),
   iniciarTeste: jest.fn(),
   tirarDoTeste: jest.fn(),
   finalizarTeste: jest.fn(),
@@ -736,5 +739,32 @@ describe("Saldo do app", () => {
     m.lerSaldoDoApp.mockResolvedValueOnce({ ...base, asaas_connected: false, asaas_error: "fora do ar" });
     render(<Saldo />);
     expect(await screen.findByText(/fora do ar/)).toBeTruthy();
+  });
+});
+
+describe("Asaas", () => {
+  const totals = { client_paid: 32.9, asaas_fee_real: 1.99, professional_planned: 30, app_net: 0.91 };
+  const c = { payment_id: "pay_1", billing_type: "PIX", status: "RECEIVED", list_price: 30, coupon_discount: 0, app_net: 0.91, difference_cents: 0 };
+
+  it("mostra conexão, totais e a cobrança; diferença só quando não bate", async () => {
+    m.lerConexaoAsaas.mockResolvedValue({ connected: true, mode: "SANDBOX", configured: true });
+    m.lerRelatorioAsaas.mockResolvedValue({ payments: [c, { ...c, payment_id: "pay_2", difference_cents: 5 }], totals });
+    render(<Asaas />);
+    expect(await screen.findByTestId("cobranca-pay_1")).toBeTruthy();
+    expect(screen.getByText("Conectado")).toBeTruthy();
+    expect(screen.getByText("Sandbox")).toBeTruthy();
+    expect(screen.getByText("R$ 32,90")).toBeTruthy();
+    expect(screen.queryByTestId("diferenca-pay_1")).toBeNull();
+    expect(screen.getByText("Diferença: 5 centavo(s)")).toBeTruthy();
+  });
+
+  it("desconectado, modo real e sem cobranças", async () => {
+    m.lerConexaoAsaas.mockResolvedValue({ connected: false, mode: "REAL", configured: false });
+    m.lerRelatorioAsaas.mockResolvedValue({ payments: [], totals });
+    render(<Asaas />);
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+    expect(screen.getByText("Desconectado")).toBeTruthy();
+    expect(screen.getByText("Real")).toBeTruthy();
+    expect(screen.getByText("Chave não configurada")).toBeTruthy();
   });
 });
