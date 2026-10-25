@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Text, View } from "react-native";
 
-import { Aviso, Barra, Botao, Cartao, Estado, Pilulas } from "../components/ui";
+import { Dica, Leitura, Numero } from "../components/leitura";
+import { useCarga } from "../lib/useCarga";
+import { Aviso, Barra, Botao, Carregando, Cartao, Estado, Pilulas } from "../components/ui";
 import {
   descreverBeneficio,
+  comoParticipar,
   descreverBonificacao,
   encerrarCampanha,
+  lerFunil,
   listarCampanhas,
   NOME_PUBLICO,
   NOME_STATUS,
@@ -15,7 +19,8 @@ import {
   type Campaign,
   type CampaignStatus,
 } from "../lib/campaigns";
-import { dataCurta, maisNovoPrimeiro } from "../lib/format";
+import { gastam, itemDaCampanha } from "../lib/simulacao";
+import { dataCurta, formatarReais, maisNovoPrimeiro } from "../lib/format";
 import { CampanhaForm } from "./CampanhaForm";
 
 type Filtro = CampaignStatus | "TODAS";
@@ -28,12 +33,50 @@ const TOM: Record<CampaignStatus, "ok" | "atencao" | "neutro"> = {
   ENDED: "neutro",
 };
 
+/** Copia para a área de transferência; sem permissão do navegador, devolve false. */
+async function copiar(texto: string) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function Codigo({ id, codigo }: { id: string; codigo: string }) {
+  const [copiado, setCopiado] = useState<boolean | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  async function copiarCodigo() {
+    setCopiado(await copiar(codigo));
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopiado(null), 2000);
+  }
+
+  return (
+    <View className="flex-row flex-wrap items-center gap-2">
+      <Text className="text-vupth-textSecondary">Código</Text>
+      <Text testID={`codigo-${id}`} selectable className="font-heading text-vupth-textPrimary">
+        {codigo}
+      </Text>
+      <Botao testID={`copiar-${id}`} titulo="Copiar" tipo="secundario" onPress={copiarCodigo} />
+      {copiado == null ? null : (
+        <Text testID={`copiado-${id}`} accessibilityLiveRegion="polite" className="text-sm text-vupth-textSecondary">
+          {copiado ? "Copiado" : "Não deu para copiar; selecione o código"}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 export function Campanhas({ hoje }: { hoje: string }) {
   const [tela, setTela] = useState<Tela>({ tipo: "lista" });
   const [campanhas, setCampanhas] = useState<Campaign[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("TODAS");
+  const [novaId, setNovaId] = useState<string | null>(null);
 
   const buscar = useCallback(
     () =>
@@ -62,10 +105,12 @@ export function Campanhas({ hoje }: { hoje: string }) {
     return (
       <CampanhaForm
         campanha={tela.campanha}
+        existentes={campanhas.filter(gastam).map(itemDaCampanha)}
         hoje={hoje}
         onCancelar={() => setTela({ tipo: "lista" })}
         onPronto={(c) => {
           setCampanhas((l) => (tela.campanha ? l.map((x) => (x.id === c.id ? c : x)) : [c, ...l]));
+          setNovaId(tela.campanha ? null : c.id);
           setCarregado(true);
           setTela({ tipo: "lista" });
         }}
@@ -83,7 +128,7 @@ export function Campanhas({ hoje }: { hoje: string }) {
     <View className="gap-5">
       <View className="flex-row flex-wrap items-center justify-between gap-3">
         <View className="gap-1">
-          <Text className="text-2xl font-bold text-vupth-textPrimary">Campanhas</Text>
+          <Text className="text-2xl font-heading text-vupth-textPrimary">Campanhas</Text>
           <Text className="text-vupth-textSecondary">
             {carregado ? `${noAr} no ar · ${campanhas.length} no total` : erro ? "Não deu para carregar." : "Carregando…"}
           </Text>
@@ -110,7 +155,7 @@ export function Campanhas({ hoje }: { hoje: string }) {
           <Botao testID="tentar" titulo="Tentar de novo" tipo="secundario" onPress={carregar} />
         </View>
       ) : null}
-      {!carregado && !erro ? <ActivityIndicator testID="carregando" color="#163300" /> : null}
+      {!carregado && !erro ? <Carregando /> : null}
       {carregado && !visiveis.length ? (
         <Text testID="vazio" className="text-vupth-textSecondary">
           {campanhas.length ? "Nenhuma campanha neste filtro." : "Nenhuma campanha ainda. A primeira nasce aqui (DEC-69)."}
@@ -121,6 +166,7 @@ export function Campanhas({ hoje }: { hoje: string }) {
         <LinhaCampanha
           key={c.id}
           c={c}
+          nova={c.id === novaId}
           onEditar={() => setTela({ tipo: "form", campanha: c })}
           onMudou={troca}
           onErro={setErro}
@@ -137,13 +183,55 @@ export function Campanhas({ hoje }: { hoje: string }) {
   );
 }
 
-type LinhaProps = { c: Campaign; onEditar: () => void; onMudou: (c: Campaign) => void; onErro: (m: string) => void };
+type LinhaProps = { c: Campaign; nova: boolean; onEditar: () => void; onMudou: (c: Campaign) => void; onErro: (m: string) => void };
 
-function LinhaCampanha({ c, onEditar, onMudou, onErro }: LinhaProps) {
+const DICA_FUNIL =
+  "O clique do link só passa a ser medido com o compartilhe-e-ganhe. A conta criada conta as indicações da janela da campanha: campanhas de link que se sobrepõem contam as mesmas contas. O corte concluído conta clientes indicados distintos com bonificação desta campanha.";
+
+/** Funil da campanha: link aberto, conta criada, corte concluído e resgates, com o nome de quem resgatou. */
+function Funil({ id }: { id: string }) {
+  const r = useCarga(`funil:${id}`, () => lerFunil(id));
+  const f = r.dado;
+  return (
+    <View testID={`funil-${id}`} className="gap-3 rounded-xl bg-vupth-background p-3">
+      <View className="flex-row items-center gap-2">
+        <Text className="font-heading text-vupth-textPrimary">Funil da campanha</Text>
+        <Dica rotulo="Funil da campanha" texto={DICA_FUNIL} />
+      </View>
+      <Leitura carregando={r.carregando} erro={r.erro} onTentar={r.recarregar}>
+        {f ? (
+          <>
+            <View className="flex-row flex-wrap gap-3">
+              <Numero rotulo="Link aberto" valor={f.link_opened_measured && f.link_opened != null ? String(f.link_opened) : "não medido"} />
+              <Numero rotulo="Conta criada" valor={String(f.accounts_created)} />
+              <Numero rotulo="Corte concluído" valor={String(f.first_cut_done)} />
+              <Numero rotulo="Resgates" valor={String(f.redeemed)} />
+            </View>
+            {f.redeemers.length ? (
+              maisNovoPrimeiro(f.redeemers, (x) => x.redeemed_at).map((x) => (
+                <Text key={`${x.name}-${x.redeemed_at}`} className="text-sm text-vupth-textSecondary">
+                  {x.name} · {dataCurta(x.redeemed_at)}
+                </Text>
+              ))
+            ) : (
+              <Text testID={`sem-resgates-${id}`} className="text-sm text-vupth-textSecondary">
+                Ninguém resgatou ainda.
+              </Text>
+            )}
+          </>
+        ) : null}
+      </Leitura>
+    </View>
+  );
+}
+
+function LinhaCampanha({ c, nova, onEditar, onMudou, onErro }: LinhaProps) {
   const [ocupado, setOcupado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+  const [funil, setFunil] = useState(false);
   const fracao = ocupacao(c);
   const bonificacao = descreverBonificacao(c);
+  const participar = comoParticipar(c);
 
   async function agir(acao: (id: string) => Promise<Campaign>) {
     setOcupado(true);
@@ -158,22 +246,33 @@ function LinhaCampanha({ c, onEditar, onMudou, onErro }: LinhaProps) {
   }
 
   return (
-    <View testID={`campanha-${c.id}`} className="gap-3 rounded-card border border-vupth-border bg-white p-5">
+    <View testID={`campanha-${c.id}`} className={`gap-3 rounded-card border bg-vupth-surface p-5 ${nova ? "border-vupth-green" : "border-vupth-border"}`}>
       <View className="flex-row flex-wrap items-center justify-between gap-2">
-        <Text className="text-lg font-semibold text-vupth-textPrimary">{c.name}</Text>
+        <Text className="text-lg font-heading text-vupth-textPrimary">{c.name}</Text>
+        {nova ? <Estado tom="ok" texto="Criada agora" /> : null}
         <Estado tom={TOM[c.status]} texto={NOME_STATUS[c.status]} />
       </View>
       <Text className="text-vupth-textSecondary">
-        {descreverBeneficio(c)} · {c.visibility === "PRIVATE" ? `Privada · ${c.code}` : `Pública${c.code ? ` · ${c.code}` : ""}`} ·{" "}
-        {NOME_PUBLICO[c.audience ?? "TODOS"]} · {dataCurta(c.starts_at)} a {dataCurta(c.ends_at)}
+        {descreverBeneficio(c)} · {c.visibility === "PRIVATE" ? "Privada" : "Pública"} · {NOME_PUBLICO[c.audience ?? "TODOS"]} · {dataCurta(c.starts_at)} a {dataCurta(c.ends_at)}
       </Text>
+      {c.code ? <Codigo id={c.id} codigo={c.code} /> : null}
       {bonificacao ? <Text className="text-sm text-vupth-textSecondary">{bonificacao}</Text> : null}
+      {participar ? <Text testID={`participar-${c.id}`} className="text-sm text-vupth-textSecondary">{participar}</Text> : null}
       <View className="gap-1">
         <Text className="text-sm text-vupth-textPrimary">
           {fracao == null ? `${c.redemptions} aceitaram · sem limite` : `${c.redemptions} de ${c.max_redemptions}`}
         </Text>
+        {c.max_total_cost != null ? (
+          <Text testID={`teto-${c.id}`} className="text-sm text-vupth-textSecondary">
+            Teto de gasto: {formatarReais(c.max_total_cost)}
+          </Text>
+        ) : null}
         {fracao == null ? null : <Barra testID={`barra-${c.id}`} fracao={fracao} />}
       </View>
+      <View className="flex-row">
+        <Botao testID={`funil-abrir-${c.id}`} titulo={funil ? "Esconder o funil" : "Ver o funil"} tipo="secundario" onPress={() => setFunil((v) => !v)} />
+      </View>
+      {funil ? <Funil id={c.id} /> : null}
       {c.status === "ENDED" ? null : (
         <View className="flex-row flex-wrap gap-2">
           <Botao testID={`editar-${c.id}`} titulo="Editar" tipo="secundario" onPress={onEditar} desabilitado={ocupado} />

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Dica, Leitura, Numero } from "../components/leitura";
-import { Aviso, Botao, Cartao, Pilulas } from "../components/ui";
+import { Aviso, Botao, Carregando, Cartao, Pilulas } from "../components/ui";
 import { lerFinanceiro } from "../lib/admin";
 import { useCarga } from "../lib/useCarga";
 import { ApiError } from "../lib/api";
@@ -53,7 +53,7 @@ export function Dinheiro({ hoje }: { hoje: string }) {
   return (
     <View className="gap-5">
       <View className="gap-1">
-        <Text className="text-2xl font-bold text-vupth-textPrimary">Dinheiro</Text>
+        <Text className="text-2xl font-heading text-vupth-textPrimary">Dinheiro</Text>
         <Text className="text-vupth-textSecondary">
           Lucro do app, separado em corte e multa. A taxa do Asaas é a atribuída a cada parte. O dia é o da loja.
         </Text>
@@ -88,7 +88,7 @@ export function Dinheiro({ hoje }: { hoje: string }) {
 
       <Financeiro periodo={periodo} hoje={hoje} lucro={relatorio} />
 
-      <Text className="text-lg font-semibold text-vupth-textPrimary">Lucro do corte e da multa</Text>
+      <Text className="text-lg font-heading text-vupth-textPrimary">Lucro do corte e da multa</Text>
       {erro ? (
         <View className="items-start gap-3">
           <Aviso texto={erro} />
@@ -98,7 +98,7 @@ export function Dinheiro({ hoje }: { hoje: string }) {
             }} />
         </View>
       ) : null}
-      {!relatorio && !erro ? <ActivityIndicator testID="carregando" color="#163300" /> : null}
+      {!relatorio && !erro ? <Carregando /> : null}
 
       {relatorio ? (
         <>
@@ -146,16 +146,19 @@ function LinhaParte({ nome, p, dica, forte }: { nome: string; p: Parte; dica: st
   return (
     <View testID={`parte-${nome}`} className="flex-row flex-wrap items-center justify-between gap-2">
       <View className="flex-row items-center gap-2">
-        <Text className={forte ? "font-semibold text-vupth-textPrimary" : "text-vupth-textPrimary"}>{nome}</Text>
+        <Text className={forte ? "font-heading text-vupth-textPrimary" : "text-vupth-textPrimary"}>{nome}</Text>
         <Dica rotulo={nome} texto={dica} />
       </View>
       <Text className="text-vupth-textSecondary">
         {formatarReais(p.amount)} · taxa {formatarReais(p.asaas_fee)} ·{" "}
-        <Text className="font-semibold text-vupth-forest">lucro {formatarReais(p.app_profit)}</Text>
+        <Text className="font-heading text-vupth-textPrimary">lucro {formatarReais(p.app_profit)}</Text>
       </Text>
     </View>
   );
 }
+
+export const DICA_TESTE =
+  "Atendimentos de lojas em teste, no mesmo período. O valor é simbólico: fica fora do faturamento, do lucro e das multas reais acima.";
 
 export const FIM_DICA = "Atendimentos antigos, sem a divisão gravada, entram só no faturamento bruto.";
 export const DICA = {
@@ -228,6 +231,17 @@ function Financeiro({ periodo, hoje, lucro }: { periodo: Periodo; hoje: string; 
               </View>
             ))}
           </Cartao>
+          {r.dado.pilot ? (
+            <Cartao titulo="Teste (simbólico)">
+              <View className="flex-row flex-wrap items-center gap-2">
+                <Text testID="teste-simbolico" className="text-vupth-textPrimary">
+                  {r.dado.pilot.attendances} {r.dado.pilot.attendances === 1 ? "atendimento" : "atendimentos"} ·{" "}
+                  <Text className="font-mono">{formatarReais(r.dado.pilot.amount)}</Text>
+                </Text>
+                <Dica rotulo="Teste (simbólico)" texto={DICA_TESTE} />
+              </View>
+            </Cartao>
+          ) : null}
           <Cartao titulo="Indicações (créditos)">
             <Text className="text-vupth-textPrimary">
               Total {formatarReais(r.dado.referral.credits_total)} · pagos {formatarReais(r.dado.referral.credits_paid)} · a pagar{" "}

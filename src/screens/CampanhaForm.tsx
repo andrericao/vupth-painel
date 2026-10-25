@@ -2,12 +2,17 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 
 import { Aviso, Botao, Campo, Cartao, Pilulas } from "../components/ui";
+import type { ItemSimulado } from "../lib/simulacao";
+import { Simulacao } from "./Simulacao";
 import { ApiError } from "../lib/api";
 import { mascaraData, mascaraPercentual, mascaraValor, somenteNumeros } from "../lib/mascaras";
 import {
   avisoBeneficio,
   criarCampanha,
   DIA_DA_SEMANA,
+  DICA_BASE,
+  DICA_TETO,
+  NOME_BASE,
   DIAS,
   editarCampanha,
   formularioDe,
@@ -17,6 +22,7 @@ import {
   NOME_QUEM_CONTA,
   paraRequest,
   validar,
+  type BaseDoValor,
   type Beneficio,
   type Campaign,
   type CampaignAudience,
@@ -27,10 +33,10 @@ import {
   type ReferralScope,
 } from "../lib/campaigns";
 
-type Props = { campanha?: Campaign; hoje: string; onPronto: (c: Campaign) => void; onCancelar: () => void };
+type Props = { campanha?: Campaign; existentes?: ItemSimulado[]; hoje: string; onPronto: (c: Campaign) => void; onCancelar: () => void };
 
 /** Criar campanha → cupom ou link → os parâmetros (DEC-69, 73). Editar usa o mesmo formulário. */
-export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
+export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCancelar }: Props) {
   const [f, setF] = useState<Formulario>(() => (campanha ? formularioDe(campanha) : formularioVazio(hoje)));
   const [erros, setErros] = useState<ReturnType<typeof validar>>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
@@ -60,7 +66,7 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
 
   return (
     <View className="gap-5">
-      <Text className="text-2xl font-bold text-vupth-textPrimary">{campanha ? "Editar campanha" : "Criar campanha"}</Text>
+      <Text className="text-2xl font-heading text-vupth-textPrimary">{campanha ? "Editar campanha" : "Criar campanha"}</Text>
 
       <Cartao titulo="1. Cupom ou link">
         <Pilulas<Modo>
@@ -150,6 +156,19 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
             placeholder={ehPercentual ? "0" : "0,00"}
           />
         ) : null}
+        {ehLink || f.beneficio === "taxa-zero" ? null : (
+          <>
+            <Pilulas<BaseDoValor>
+              testID="base"
+              valor={f.baseDoValor}
+              onChange={muda("baseDoValor")}
+              opcoes={(Object.keys(NOME_BASE) as BaseDoValor[]).map((b) => ({ valor: b, rotulo: NOME_BASE[b] }))}
+            />
+            <Text testID="dica-base" className="text-sm text-vupth-textSecondary">
+              {DICA_BASE}
+            </Text>
+          </>
+        )}
         {ehLink ? <ParametrosBonificacao f={f} erros={erros} muda={muda} /> : null}
       </Cartao>
 
@@ -176,7 +195,17 @@ export function CampanhaForm({ campanha, hoje, onPronto, onCancelar }: Props) {
           onChange={(v) => muda("limite")(somenteNumeros(v, 7))}
           erro={erros.limite}
         />
+        <Campo
+          testID="teto"
+          rotulo="Teto de gasto em R$ (vazio = sem teto)"
+          valor={f.teto}
+          onChange={(v) => muda("teto")(mascaraValor(v))}
+          erro={erros.teto}
+          dica={DICA_TETO}
+        />
       </Cartao>
+
+      <Simulacao f={f} editandoId={campanha?.id} existentes={existentes} />
 
       {erroGeral ? <Aviso texto={erroGeral} /> : null}
       <View className="flex-row gap-3">
@@ -193,7 +222,7 @@ type Muda = <K extends keyof Formulario>(k: K) => (v: Formulario[K]) => void;
 function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: ReturnType<typeof validar>; muda: Muda }) {
   return (
     <View testID="parametros-bonificacao" className="gap-3 rounded-xl border border-dashed border-vupth-border p-4">
-      <Text className="text-sm font-semibold text-vupth-textPrimary">Bonificação</Text>
+      <Text className="text-sm font-heading text-vupth-textPrimary">Bonificação</Text>
       <View className="flex-row flex-wrap gap-4">
         <View className="min-w-[180px] flex-1">
           <Campo

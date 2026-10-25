@@ -103,7 +103,7 @@ function Configurar({ onPronto }: { onPronto: () => void }) {
   if (guardar) {
     return (
       <>
-        <Text className="font-semibold text-vupth-textPrimary">Guarde estes códigos de recuperação</Text>
+        <Text className="font-heading text-vupth-textPrimary">Guarde estes códigos de recuperação</Text>
         <Text className="text-vupth-textSecondary">
           Eles aparecem só agora. Cada um vale uma vez, se você perder o celular.
         </Text>

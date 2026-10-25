@@ -20,6 +20,7 @@ jest.mock("../../lib/auth", () => ({
 jest.mock("../../lib/campaigns", () => ({
   ...jest.requireActual("../../lib/campaigns"),
   listarCampanhas: jest.fn(),
+  lerFunil: jest.fn(),
   criarCampanha: jest.fn(),
   editarCampanha: jest.fn(),
   pausarCampanha: jest.fn(),
@@ -235,6 +236,118 @@ describe("Campanhas", () => {
     expect(screen.getByTestId("vazio")).toHaveTextContent("Nenhuma campanha neste filtro.");
   });
 
+  it("cupom com Copiar (confirma, ou avisa se o navegador nega) e link com o como participar", async () => {
+    const cupom = campanha({ code: "TESTE10" });
+    const link = campanha({
+      id: "c2",
+      name: "Indique",
+      type: "REFERRAL_BONUS",
+      visibility: "PRIVATE",
+      audience: "PROFESSIONAL",
+      code: "PART1",
+    });
+    const aberto = campanha({ id: "c3", name: "Aberta", type: "REFERRAL_BONUS" });
+    m.listarCampanhas.mockResolvedValue([cupom, link, aberto]);
+    const escrever = jest.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("negado"));
+    Object.defineProperty(navigator, "clipboard", { value: { writeText: escrever }, configurable: true });
+    render(<Campanhas hoje="2026-10-16" />);
+    await screen.findByText("Lançamento");
+    expect(screen.getByTestId("codigo-c1")).toHaveTextContent("TESTE10");
+    expect(screen.getByTestId("participar-c2")).toHaveTextContent(
+      "Participa pelo bloco de campanhas da Home do Partner, tocando em Participar e informando o código de participação.",
+    );
+    expect(screen.getByTestId("participar-c3")).toHaveTextContent(/da Home do Client \(cliente\) ou Partner \(profissional e dono\), tocando em Participar\./);
+    expect(screen.queryByTestId("participar-c1")).toBeNull();
+    fireEvent.press(screen.getByTestId("copiar-c1"));
+    expect(await screen.findByTestId("copiado-c1")).toHaveTextContent("Copiado");
+    expect(escrever).toHaveBeenCalledWith("TESTE10");
+    fireEvent.press(screen.getByTestId("copiar-c2"));
+    expect(await screen.findByTestId("copiado-c2")).toHaveTextContent(/Não deu para copiar/);
+  });
+
+  it("simulação no fim do formulário: soma a nova com as ativas e sem preço some", async () => {
+    m.listarCampanhas.mockResolvedValue([
+      campanha({ code: "A", value_amount: 10, max_redemptions: 5 }),
+      campanha({ id: "c9", name: "Velha", status: "ENDED" }),
+    ]);
+    render(<Campanhas hoje="2026-10-16" />);
+    await screen.findByText("Lançamento");
+    fireEvent.press(screen.getByTestId("criar"));
+    fireEvent.changeText(screen.getByTestId("nome"), "Nova");
+    fireEvent.changeText(screen.getByTestId("valor"), "1000");
+    fireEvent.changeText(screen.getByTestId("limite"), "20");
+    fireEvent.changeText(screen.getByTestId("sim-cortes"), "2");
+    expect(screen.getByTestId("sim-nova")).toHaveTextContent(/Nova · 20 pessoas · 40 cortes/);
+    expect(screen.getByTestId("sim-nova")).toHaveTextContent(/R\$ 400,00/);
+    expect(screen.getByTestId("sim-ativa-0")).toHaveTextContent(/Lançamento · 5 pessoas · 10 cortes/);
+    expect(screen.getByTestId("sim-total")).toHaveTextContent(/Total \(2 campanhas\)/);
+    expect(screen.getByTestId("sim-total")).toHaveTextContent(/R\$ 500,00/);
+    fireEvent.changeText(screen.getByTestId("sim-corte"), "");
+    expect(screen.getByTestId("sim-vazia")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("sim-corte"), "5000");
+    fireEvent.changeText(screen.getByTestId("limite"), "");
+    fireEvent.changeText(screen.getByTestId("sim-pessoas"), "3");
+    expect(screen.getByTestId("sim-nova")).toHaveTextContent(/3 pessoas/);
+    expect(screen.getByTestId("sim-total")).toHaveTextContent(/sem limite/);
+  });
+
+  it("editar: a própria campanha não conta duas vezes na simulação", async () => {
+    m.listarCampanhas.mockResolvedValue([campanha({ max_redemptions: 5 })]);
+    render(<Campanhas hoje="2026-10-16" />);
+    fireEvent.press(await screen.findByTestId("editar-c1"));
+    expect(screen.queryByTestId("sim-ativa-0")).toBeNull();
+    expect(screen.getByTestId("sim-total")).toHaveTextContent(/Total \(1 campanha\)/);
+  });
+
+  it("funil: link não medido, conta, corte, resgates com o nome, o i e erro com tentar de novo", async () => {
+    m.listarCampanhas.mockResolvedValue([campanha()]);
+    m.lerFunil
+      .mockRejectedValueOnce(new Error("Sem conexão"))
+      .mockResolvedValueOnce({
+        campaign_id: "c1",
+        name: "Lançamento",
+        type: "REFERRAL_BONUS",
+        from: "2026-10-16T03:00:00Z",
+        to: "2026-11-16T03:00:00Z",
+        link_opened: null,
+        link_opened_measured: false,
+        accounts_created: 7,
+        first_cut_done: 3,
+        redeemed: 2,
+        redeemers: [
+          { name: "Ana", redeemed_at: "2026-10-17T12:00:00Z" },
+          { name: "Bia", redeemed_at: "2026-10-19T12:00:00Z" },
+        ],
+      })
+      .mockResolvedValueOnce({
+        campaign_id: "c1",
+        name: "Lançamento",
+        type: "REFERRAL_BONUS",
+        from: "2026-10-16T03:00:00Z",
+        to: "2026-11-16T03:00:00Z",
+        link_opened: 9,
+        link_opened_measured: true,
+        accounts_created: 0,
+        first_cut_done: 0,
+        redeemed: 0,
+        redeemers: [],
+      });
+    render(<Campanhas hoje="2026-10-16" />);
+    fireEvent.press(await screen.findByTestId("funil-abrir-c1"));
+    expect(await screen.findByText("Sem conexão")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("tentar"));
+    expect(await screen.findByText("não medido")).toBeTruthy();
+    expect(screen.getByText("7")).toBeTruthy();
+    const nomes = screen.getAllByText(/^(Ana|Bia) ·/).map((n) => String(n.props.children[0]));
+    expect(nomes).toEqual(["Bia", "Ana"]);
+    expect(screen.getByLabelText("Como é calculado: Funil da campanha")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("funil-abrir-c1"));
+    expect(screen.queryByTestId("funil-c1")).toBeNull();
+    fireEvent.press(screen.getByTestId("funil-abrir-c1"));
+    expect(await screen.findByTestId("sem-resgates-c1")).toBeTruthy();
+    expect(screen.getByText("9")).toBeTruthy();
+  });
+
   it("sem campanha nenhuma", async () => {
     m.listarCampanhas.mockResolvedValue([]);
     render(<Campanhas hoje="2026-10-16" />);
@@ -292,12 +405,33 @@ describe("Campanhas", () => {
     fireEvent.changeText(screen.getByTestId("fim"), "31102026");
     fireEvent.press(screen.getByTestId("salvar"));
     expect(await screen.findByText("Nova")).toBeTruthy();
+    expect(screen.getByText("Criada agora")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("editar-c1"));
     expect(screen.getByText("Editar campanha")).toBeTruthy();
     fireEvent.press(screen.getByTestId("salvar"));
     expect(await screen.findByText("Lançamento 2")).toBeTruthy();
     expect(m.editarCampanha).toHaveBeenCalledWith("c1", expect.objectContaining({ name: "Lançamento" }));
+  }, 20000);
+
+  it("campanha de desconto escolhe valor com ou sem taxa; taxa zero e link não mostram a escolha", async () => {
+    m.listarCampanhas.mockResolvedValue([]);
+    m.criarCampanha.mockResolvedValue(campanha({ id: "n1", name: "Nova" }));
+    render(<Campanhas hoje="2026-10-16" />);
+    fireEvent.press(await screen.findByTestId("criar"));
+    expect(screen.getByTestId("dica-base")).toHaveTextContent(/cupons não se acumulam/);
+    fireEvent.press(screen.getByTestId("base-WITHOUT_FEE"));
+    fireEvent.changeText(screen.getByTestId("nome"), "Nova");
+    fireEvent.changeText(screen.getByTestId("valor"), "5");
+    fireEvent.changeText(screen.getByTestId("fim"), "31102026");
+    fireEvent.press(screen.getByTestId("salvar"));
+    await screen.findByText("Nova");
+    expect(m.criarCampanha).toHaveBeenCalledWith(expect.objectContaining({ benefit_base: "WITHOUT_FEE" }));
+    fireEvent.press(screen.getByTestId("criar"));
+    fireEvent.press(screen.getByTestId("beneficio-taxa-zero"));
+    expect(screen.queryByTestId("base")).toBeNull();
+    fireEvent.press(screen.getByTestId("modo-link"));
+    expect(screen.queryByTestId("base")).toBeNull();
   });
 
   it("se a lista ainda não veio, criar funciona igual", async () => {

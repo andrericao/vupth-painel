@@ -5,9 +5,15 @@ import * as A from "../../lib/admin";
 import * as L from "../../lib/lucro";
 import { Alertas } from "../Alertas";
 import { comDivisao, Dinheiro } from "../Dinheiro";
+import { Dividas } from "../Dividas";
 import { Hoje } from "../Hoje";
 import { Auditoria, Estabelecimentos, Usuarios } from "../Listas";
+import { Multas } from "../Multas";
+import { Premios } from "../Premios";
+import { Saldo } from "../Saldo";
+import { Asaas } from "../Asaas";
 import { Suporte } from "../Suporte";
+import { Testes } from "../Testes";
 
 jest.mock("../../lib/admin", () => ({
   ...jest.requireActual("../../lib/admin"),
@@ -19,6 +25,20 @@ jest.mock("../../lib/admin", () => ({
   listarLojas: jest.fn(),
   listarAuditoria: jest.fn(),
   listarSuporte: jest.fn(),
+  listarMultas: jest.fn(),
+  listarTestes: jest.fn(),
+  lerDividaReal: jest.fn(),
+  mudarDividaReal: jest.fn(),
+  listarDividas: jest.fn(),
+  quitarDivida: jest.fn(),
+  listarPremiosPendentes: jest.fn(),
+  liberarPremio: jest.fn(),
+  lerSaldoDoApp: jest.fn(),
+  lerConexaoAsaas: jest.fn(),
+  lerRelatorioAsaas: jest.fn(),
+  iniciarTeste: jest.fn(),
+  tirarDoTeste: jest.fn(),
+  finalizarTeste: jest.fn(),
 }));
 jest.mock("../../lib/lucro", () => ({ ...jest.requireActual("../../lib/lucro"), buscarLucro: jest.fn() }));
 const m = A as jest.Mocked<typeof A>;
@@ -248,6 +268,235 @@ describe("Ordem: do mais novo ao mais antigo", () => {
   });
 });
 
+const loja = (id: string, nome: string, x: Partial<A.LojaLinha> = {}): A.LojaLinha => ({
+  id,
+  name: nome,
+  status: "ACTIVE",
+  open_status: "OPEN",
+  owner_id: "o",
+  owner_name: "Dono",
+  professionals: 2,
+  created_at: "2026-10-01T12:00:00Z",
+  ...x,
+});
+
+describe("Estabelecimentos: iniciar e tirar do teste", () => {
+  it("marca lojas, pede o nome, inicia e recarrega; a loja em teste tem selo e sai pela linha", async () => {
+    m.listarLojas
+      .mockResolvedValueOnce(pagina([loja("l1", "Barbearia A"), loja("l2", "Barbearia B"), loja("l3", "Barbearia C", { active_test_id: "t9", active_test_name: "Piloto antigo" })]))
+      .mockResolvedValue(pagina([loja("l1", "Barbearia A", { active_test_id: "t1", active_test_name: "Piloto" })]));
+    m.iniciarTeste.mockResolvedValue({} as A.Teste);
+    m.tirarDoTeste.mockResolvedValue({} as A.Teste);
+    render(<Estabelecimentos />);
+    await screen.findByText("Barbearia A");
+    expect(screen.getByText("TESTE: Piloto antigo")).toBeTruthy();
+    expect(screen.queryByTestId("marcar-l3")).toBeNull();
+    expect(screen.queryByTestId("nome-do-teste")).toBeNull();
+    fireEvent.press(screen.getByTestId("marcar-l1"));
+    fireEvent.press(screen.getByTestId("marcar-l2"));
+    fireEvent.press(screen.getByTestId("marcar-l2"));
+    expect(screen.getByText("Iniciar teste com 1 loja")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("marcar-l2"));
+    expect(screen.getByText("Iniciar teste com 2 lojas")).toBeTruthy();
+    expect(screen.getByTestId("iniciar-teste")).toBeDisabled();
+    fireEvent.changeText(screen.getByTestId("nome-do-teste"), "  Piloto ");
+    fireEvent.press(screen.getByTestId("iniciar-teste"));
+    await waitFor(() => expect(m.iniciarTeste).toHaveBeenCalledWith("  Piloto ", ["l1", "l2"]));
+    expect(await screen.findByText("TESTE: Piloto")).toBeTruthy();
+    expect(screen.queryByTestId("nome-do-teste")).toBeNull();
+    fireEvent.press(screen.getByTestId("tirar-l1"));
+    await waitFor(() => expect(m.tirarDoTeste).toHaveBeenCalledWith("t1", "l1"));
+  });
+
+  it("limpar as marcas, e os erros do Backend em português", async () => {
+    m.listarLojas.mockResolvedValue(pagina([loja("l1", "Barbearia A")]));
+    m.iniciarTeste.mockRejectedValueOnce(new ApiError(409, "TEST_RUN_ALREADY_ACTIVE", "x")).mockRejectedValueOnce(new ApiError(422, null, "x")).mockRejectedValueOnce(new Error("Sem conexão"));
+    render(<Estabelecimentos />);
+    fireEvent.press(await screen.findByTestId("marcar-l1"));
+    fireEvent.press(screen.getByTestId("limpar-marcas"));
+    expect(screen.queryByTestId("iniciar-teste")).toBeNull();
+    fireEvent.press(screen.getByTestId("marcar-l1"));
+    fireEvent.changeText(screen.getByTestId("nome-do-teste"), "T");
+    fireEvent.press(screen.getByTestId("iniciar-teste"));
+    expect(await screen.findByText(/já está em outro teste ativo/)).toBeTruthy();
+    fireEvent.press(screen.getByTestId("iniciar-teste"));
+    expect(await screen.findByText(/Dê um nome ao teste/)).toBeTruthy();
+    fireEvent.press(screen.getByTestId("iniciar-teste"));
+    expect(await screen.findByText("Sem conexão")).toBeTruthy();
+  });
+
+  it("busca volta à primeira página", async () => {
+    m.listarLojas.mockResolvedValue(pagina([loja("l1", "Barbearia A")], 45));
+    render(<Estabelecimentos />);
+    await screen.findByText("Barbearia A");
+    fireEvent.press(screen.getByTestId("proxima"));
+    await waitFor(() => expect(m.listarLojas).toHaveBeenLastCalledWith("", 1));
+    fireEvent.changeText(screen.getByTestId("busca"), "bar");
+    fireEvent.press(screen.getByTestId("buscar"));
+    await waitFor(() => expect(m.listarLojas).toHaveBeenLastCalledWith("bar", 0));
+  });
+});
+
+describe("Dívidas por fora", () => {
+  const dividas: A.DividaLinha[] = [
+    { professional_id: "aaaaaaaa-1", amount: 10, simulated: true },
+    { professional_id: "bbbbbbbb-2", amount: 20, simulated: false },
+    { professional_id: "cccccccc-3", amount: 35.5, simulated: false },
+  ];
+
+  it("mostra o real e o simulado, reais primeiro; quita só a real, com confirmação", async () => {
+    m.lerDividaReal.mockResolvedValue({ real: false });
+    m.listarDividas.mockResolvedValueOnce(dividas).mockResolvedValue([dividas[0]]);
+    m.quitarDivida.mockResolvedValue({ settled_amount: 35.5 });
+    render(<Dividas />);
+    await screen.findByTestId("divida-cccccccc-3-real");
+    expect(screen.getAllByTestId(/^divida-/).map((n) => n.props.testID)).toEqual([
+      "divida-cccccccc-3-real",
+      "divida-bbbbbbbb-2-real",
+      "divida-aaaaaaaa-1-simulada",
+    ]);
+    expect(screen.getByText("De teste")).toBeTruthy();
+    expect(screen.queryByTestId("quitar-aaaaaaaa-1")).toBeNull();
+    fireEvent.press(screen.getByTestId("quitar-cccccccc-3"));
+    expect(m.quitarDivida).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("confirmar-quitar-cccccccc-3"));
+    await waitFor(() => expect(m.quitarDivida).toHaveBeenCalledWith("cccccccc-3"));
+    expect(await screen.findByText(/Quitado: R\$ 35,50/)).toBeTruthy();
+    expect(await screen.findByTestId("divida-aaaaaaaa-1-simulada")).toBeTruthy();
+    expect(screen.queryByTestId("divida-cccccccc-3-real")).toBeNull();
+  });
+
+  it("o interruptor pede confirmação, liga e desliga, e o i explica", async () => {
+    m.lerDividaReal.mockResolvedValueOnce({ real: false }).mockResolvedValueOnce({ real: true }).mockResolvedValue({ real: false });
+    m.listarDividas.mockResolvedValue([]);
+    m.mudarDividaReal.mockResolvedValue({ real: true });
+    render(<Dividas />);
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+    expect(screen.getByLabelText("Como é calculado: Dívidas novas")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("mudar-flag"));
+    fireEvent.press(screen.getByTestId("cancelar-flag"));
+    expect(m.mudarDividaReal).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("mudar-flag"));
+    expect(screen.getByTestId("aviso-flag")).toHaveTextContent(/passam a ser reais/);
+    fireEvent.press(screen.getByTestId("confirmar-flag"));
+    await waitFor(() => expect(m.mudarDividaReal).toHaveBeenCalledWith(true));
+    expect(await screen.findByText("Reais")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("mudar-flag"));
+    expect(screen.getByTestId("aviso-flag")).toHaveTextContent(/Voltar as dívidas novas para teste/);
+    m.mudarDividaReal.mockResolvedValueOnce({ real: false });
+    fireEvent.press(screen.getByTestId("confirmar-flag"));
+    await waitFor(() => expect(m.mudarDividaReal).toHaveBeenLastCalledWith(false));
+  });
+
+  it("erro ao quitar aparece na tela", async () => {
+    m.lerDividaReal.mockResolvedValue({ real: true });
+    m.listarDividas.mockResolvedValue([dividas[1]]);
+    m.quitarDivida.mockRejectedValueOnce(new ApiError(403, "ADMIN_PERMISSION_DENIED", "negado"));
+    render(<Dividas />);
+    fireEvent.press(await screen.findByTestId("quitar-bbbbbbbb-2"));
+    fireEvent.press(screen.getByTestId("confirmar-quitar-bbbbbbbb-2"));
+    expect(await screen.findByText(/não tem a permissão/)).toBeTruthy();
+  });
+});
+
+describe("Testes", () => {
+  const teste = (id: string, x: Partial<A.Teste> = {}): A.Teste => ({
+    id,
+    name: "Piloto",
+    started_at: "2026-10-20T12:00:00Z",
+    ended_at: null,
+    active: true,
+    attendances: 3,
+    symbolic_amount: 120,
+    establishments: [
+      { establishment_id: "l1", establishment_name: "Barbearia A", joined_at: "2026-10-20T12:00:00Z", left_at: null },
+      { establishment_id: "l2", establishment_name: "Barbearia B", joined_at: "2026-10-20T12:00:00Z", left_at: "2026-10-21T12:00:00Z" },
+    ],
+    ...x,
+  });
+
+  it("lista do mais novo ao mais antigo com lojas, saída e total; finaliza com confirmação", async () => {
+    m.listarTestes
+      .mockResolvedValueOnce(pagina([teste("velho", { name: "Antigo", active: false, ended_at: "2026-10-22T12:00:00Z", attendances: 1 }), teste("novo", { started_at: "2026-10-23T12:00:00Z" })]))
+      .mockResolvedValue(pagina([]));
+    m.finalizarTeste.mockResolvedValue({} as A.Teste);
+    render(<Testes />);
+    await screen.findByTestId("teste-novo");
+    expect(screen.getAllByTestId(/^teste-/).map((n) => n.props.testID)).toEqual(["teste-novo", "teste-velho"]);
+    expect(screen.getAllByText(/saiu/)).toHaveLength(2);
+    expect(screen.getByText("Finalizado")).toBeTruthy();
+    expect(screen.getByText("1 atendimento", { exact: false })).toBeTruthy();
+    expect(screen.queryByTestId("finalizar-velho")).toBeNull();
+    fireEvent.press(screen.getByTestId("finalizar-novo"));
+    expect(m.finalizarTeste).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("confirmar-novo"));
+    await waitFor(() => expect(m.finalizarTeste).toHaveBeenCalledWith("novo"));
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+  });
+
+  it("erro ao finalizar e busca pelo nome", async () => {
+    m.listarTestes.mockResolvedValue(pagina([teste("t1")]));
+    m.finalizarTeste.mockRejectedValueOnce(new ApiError(409, "TEST_RUN_ALREADY_ENDED", "x"));
+    render(<Testes />);
+    fireEvent.press(await screen.findByTestId("finalizar-t1"));
+    fireEvent.press(screen.getByTestId("confirmar-t1"));
+    expect(await screen.findByText("Este teste já foi finalizado.")).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId("busca"), "pil");
+    fireEvent.press(screen.getByTestId("buscar"));
+    await waitFor(() => expect(m.listarTestes).toHaveBeenLastCalledWith("pil", 0));
+  });
+});
+
+describe("Multas", () => {
+  const multa = (id: string, x: Partial<A.MultaLinha> = {}): A.MultaLinha => ({
+    id,
+    type: "LATE_ARRIVAL",
+    client_id: "u1",
+    client_name: "Ana",
+    establishment_id: "e1",
+    establishment_name: "Barbearia",
+    amount: 5,
+    state: "GENERATED",
+    test: false,
+    created_at: "2026-10-20T12:00:00Z",
+    ...x,
+  });
+
+  it("lista do mais novo ao mais antigo, marca as de teste e filtra por tipo, teste e busca", async () => {
+    m.listarMultas.mockResolvedValue({
+      items: [
+        multa("velha"),
+        multa("nova", { type: "NO_SHOW", state: "CHARGED", test: true, created_at: "2026-10-22T12:00:00Z", client_name: "Bia" }),
+      ],
+      page: 0,
+      size: 20,
+      total: 2,
+    });
+    render(<Multas />);
+    expect(await screen.findByTestId("multa-nova")).toBeTruthy();
+    expect(m.listarMultas).toHaveBeenLastCalledWith("", "", "", 0);
+    expect(screen.getAllByTestId(/^multa-/).map((n) => n.props.testID)).toEqual(["multa-nova", "multa-velha"]);
+    expect(within(screen.getByTestId("multa-nova")).getByText("Falta")).toBeTruthy();
+    expect(screen.getAllByText("Teste")).toHaveLength(1);
+    fireEvent.press(screen.getByTestId("tipo-LATE_CANCEL"));
+    await waitFor(() => expect(m.listarMultas).toHaveBeenLastCalledWith("LATE_CANCEL", "", "", 0));
+    fireEvent.press(screen.getByTestId("teste-true"));
+    await waitFor(() => expect(m.listarMultas).toHaveBeenLastCalledWith("LATE_CANCEL", "true", "", 0));
+    fireEvent.changeText(screen.getByTestId("busca"), "  Ana ");
+    fireEvent.press(screen.getByTestId("buscar"));
+    await waitFor(() => expect(m.listarMultas).toHaveBeenLastCalledWith("LATE_CANCEL", "true", "  Ana ", 0));
+  });
+
+  it("sem multa no filtro, e erro de permissão", async () => {
+    m.listarMultas.mockResolvedValueOnce({ items: [], page: 0, size: 20, total: 0 });
+    render(<Multas />);
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+    m.listarMultas.mockRejectedValueOnce(new ApiError(403, "ADMIN_PERMISSION_DENIED", "negado"));
+    fireEvent.press(screen.getByTestId("tipo-NO_SHOW"));
+    expect(await screen.findByText(/não tem a permissão/)).toBeTruthy();
+  });
+});
+
 describe("Alertas", () => {
   const alertas = (x: Partial<A.Alertas> = {}): A.Alertas => ({
     payments_stuck_hours: 24,
@@ -267,6 +516,26 @@ describe("Alertas", () => {
     expect(screen.getByText(/Ainda não medido pelo Backend: Push recusado, outra\./)).toBeTruthy();
     fireEvent.press(screen.getByText("3 dias"));
     await waitFor(() => expect(m.lerAlertas).toHaveBeenLastCalledWith(72));
+  });
+
+  it("push recusado e 5xx: última hora, 24 horas e uma barra por hora, com o i", async () => {
+    const serie = (n: number) => ({
+      last_hour: n,
+      last_24h: n * 3,
+      by_hour: [
+        { hour: "2026-10-23T10:00:00Z", count: 0 },
+        { hour: "2026-10-23T11:00:00Z", count: n },
+      ],
+    });
+    m.lerAlertas.mockResolvedValue(alertas({ push_refused: serie(4), http_5xx: serie(0), not_measured: [] }));
+    render(<Alertas />);
+    expect(await screen.findByTestId("serie-push")).toBeTruthy();
+    expect(screen.getByTestId("serie-5xx")).toBeTruthy();
+    expect(screen.getAllByTestId("barra-push")).toHaveLength(2);
+    expect(screen.getByText("12")).toBeTruthy();
+    expect(screen.getByLabelText("Como é calculado: Push recusado")).toBeTruthy();
+    expect(screen.getByLabelText("Como é calculado: Erros 5xx da API")).toBeTruthy();
+    expect(screen.queryByText(/Ainda não medido/)).toBeNull();
   });
 
   it("nada parado e tudo medido", async () => {
@@ -291,6 +560,19 @@ describe("Dinheiro: o i de cada card", () => {
     items: [],
     totals: { key: "total", attendances, service: parteZero, penalty: parteZero, total: parteZero },
     services_without_split: semDivisao,
+  });
+
+  it("o teste aparece à parte, simbólico, com o i; sem teste o card não existe", async () => {
+    (L.buscarLucro as jest.Mock).mockResolvedValue(lucro(2, 0));
+    m.lerFinanceiro.mockResolvedValueOnce({ ...fin, pilot: { attendances: 1, amount: 35 } });
+    const { unmount } = render(<Dinheiro hoje="2026-10-22" />);
+    expect(await screen.findByTestId("teste-simbolico")).toHaveTextContent(/1 atendimento · R\$ 35,00/);
+    expect(screen.getByLabelText("Como é calculado: Teste (simbólico)")).toBeTruthy();
+    unmount();
+    m.lerFinanceiro.mockResolvedValueOnce(fin);
+    render(<Dinheiro hoje="2026-10-22" />);
+    await screen.findByText("Indicações (créditos)");
+    expect(screen.queryByTestId("teste-simbolico")).toBeNull();
   });
 
   it("toque abre a dica do cálculo, outro toque e o Esc fecham; o fim lembra dos antigos", async () => {
@@ -371,5 +653,118 @@ describe("Dinheiro: números do período", () => {
     expect(screen.getByText(/Aguardando confirmação: 2/)).toBeTruthy();
     expect(screen.getByText(/a pagar/)).toBeTruthy();
     expect(m.lerFinanceiro).toHaveBeenCalledWith("2026-10-01T00:00:00-03:00", "2026-10-23T00:00:00-03:00");
+  });
+});
+
+describe("Prêmios do compartilhe e ganhe", () => {
+  const premios: A.PremioPendente[] = [
+    { campaign_id: "c1", campaign_name: "Indique", beneficiary_id: "b1", beneficiary_name: "Ana", amount: 15, credits: 3 },
+    { campaign_id: "c1", campaign_name: "Indique", beneficiary_id: "bbbbbbbb-2", amount: 5, credits: 1 },
+  ];
+
+  it("lista, pede confirmação e libera só aquela pessoa", async () => {
+    m.listarPremiosPendentes.mockResolvedValueOnce(premios).mockResolvedValue([premios[1]]);
+    m.liberarPremio.mockResolvedValue({ released_credits: 3, released_at: "2026-10-23T12:00:00Z" });
+    render(<Premios />);
+    await screen.findByTestId("premio-c1-b1");
+    expect(screen.getByText("Ana")).toBeTruthy();
+    expect(screen.getByText("Pessoa #bbbbbbbb")).toBeTruthy();
+    expect(screen.getByText("R$ 20,00")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("liberar-c1-b1"));
+    expect(m.liberarPremio).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("confirmar-liberar-c1-b1"));
+    await waitFor(() => expect(m.liberarPremio).toHaveBeenCalledWith("c1", "b1"));
+    expect(await screen.findByText("Liberado: 3 prêmios.")).toBeTruthy();
+    expect(screen.queryByTestId("premio-c1-b1")).toBeNull();
+  });
+
+  it("cancelar não libera; vazio avisa; erro aparece", async () => {
+    m.listarPremiosPendentes.mockResolvedValueOnce([premios[0]]).mockResolvedValue([]);
+    m.liberarPremio.mockRejectedValue(new ApiError(409, "JA_LIBERADO", "Já liberado."));
+    render(<Premios />);
+    await screen.findByTestId("premio-c1-b1");
+    fireEvent.press(screen.getByTestId("liberar-c1-b1"));
+    fireEvent.press(screen.getByTestId("cancelar-liberar-c1-b1"));
+    expect(screen.getByTestId("liberar-c1-b1")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("liberar-c1-b1"));
+    fireEvent.press(screen.getByTestId("confirmar-liberar-c1-b1"));
+    expect(await screen.findByText("Já liberado.")).toBeTruthy();
+    expect(screen.getByTestId("premio-c1-b1")).toBeTruthy();
+  });
+
+  it("sem prêmio esperando, avisa", async () => {
+    m.listarPremiosPendentes.mockResolvedValue([]);
+    render(<Premios />);
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+  });
+});
+
+describe("Saldo do app", () => {
+  const base: A.SaldoDoApp = {
+    owed_total: 100,
+    pending_release_total: 20,
+    asaas_connected: true,
+    app_balance: 60,
+    deposit_needed: 40,
+    beneficiaries: [
+      { beneficiary_id: "b1", beneficiary_name: "Ana", amount: 30, credits: 1 },
+      { beneficiary_id: "bbbbbbbb-2", amount: 70, credits: 4 },
+    ],
+  };
+
+  it("destaca o depósito e lista o maior primeiro", async () => {
+    m.lerSaldoDoApp.mockResolvedValue(base);
+    render(<Saldo />);
+    expect(await screen.findByTestId("depositar")).toBeTruthy();
+    expect(screen.getByText("R$ 40,00")).toBeTruthy();
+    expect(screen.getAllByTestId(/^pessoa-/).map((n) => n.props.testID)).toEqual(["pessoa-bbbbbbbb-2", "pessoa-b1"]);
+    expect(screen.getByText("Pessoa #bbbbbbbb")).toBeTruthy();
+    expect(screen.getByText("1 indicação")).toBeTruthy();
+  });
+
+  it("saldo que cobre a dívida não pede depósito", async () => {
+    m.lerSaldoDoApp.mockResolvedValue({ ...base, app_balance: 100, deposit_needed: 0, beneficiaries: [] });
+    render(<Saldo />);
+    expect(await screen.findByTestId("sem-deposito")).toBeTruthy();
+    expect(screen.queryByTestId("depositar")).toBeNull();
+    expect(screen.getByTestId("vazio")).toBeTruthy();
+  });
+
+  it("sem Asaas mostra só o devedor; com erro do Asaas avisa", async () => {
+    m.lerSaldoDoApp.mockResolvedValueOnce({ owed_total: 10, pending_release_total: 0, asaas_connected: false, beneficiaries: [] });
+    const { unmount } = render(<Saldo />);
+    expect(await screen.findByTestId("sem-asaas")).toBeTruthy();
+    expect(screen.queryByTestId("depositar")).toBeNull();
+    unmount();
+    m.lerSaldoDoApp.mockResolvedValueOnce({ ...base, asaas_connected: false, asaas_error: "fora do ar" });
+    render(<Saldo />);
+    expect(await screen.findByText(/fora do ar/)).toBeTruthy();
+  });
+});
+
+describe("Asaas", () => {
+  const totals = { client_paid: 32.9, asaas_fee_real: 1.99, professional_planned: 30, app_net: 0.91 };
+  const c = { payment_id: "pay_1", billing_type: "PIX", status: "RECEIVED", list_price: 30, coupon_discount: 0, app_net: 0.91, difference_cents: 0 };
+
+  it("mostra conexão, totais e a cobrança; diferença só quando não bate", async () => {
+    m.lerConexaoAsaas.mockResolvedValue({ connected: true, mode: "SANDBOX", configured: true });
+    m.lerRelatorioAsaas.mockResolvedValue({ payments: [c, { ...c, payment_id: "pay_2", difference_cents: 5 }], totals });
+    render(<Asaas />);
+    expect(await screen.findByTestId("cobranca-pay_1")).toBeTruthy();
+    expect(screen.getByText("Conectado")).toBeTruthy();
+    expect(screen.getByText("Sandbox")).toBeTruthy();
+    expect(screen.getByText("R$ 32,90")).toBeTruthy();
+    expect(screen.queryByTestId("diferenca-pay_1")).toBeNull();
+    expect(screen.getByText("Diferença: 5 centavo(s)")).toBeTruthy();
+  });
+
+  it("desconectado, modo real e sem cobranças", async () => {
+    m.lerConexaoAsaas.mockResolvedValue({ connected: false, mode: "REAL", configured: false });
+    m.lerRelatorioAsaas.mockResolvedValue({ payments: [], totals });
+    render(<Asaas />);
+    expect(await screen.findByTestId("vazio")).toBeTruthy();
+    expect(screen.getByText("Desconectado")).toBeTruthy();
+    expect(screen.getByText("Real")).toBeTruthy();
+    expect(screen.getByText("Chave não configurada")).toBeTruthy();
   });
 });

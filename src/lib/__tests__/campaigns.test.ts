@@ -182,13 +182,21 @@ describe("paraRequest", () => {
       ends_at: "2026-10-31T23:59:59-03:00",
       weekdays: "MONDAY,FRIDAY",
       max_redemptions: null,
+      max_total_cost: null,
       new_clients_only: false,
+      benefit_base: "WITH_FEE",
       referral_professional_percent: null,
       referral_owner_percent: null,
       referral_scope: null,
       payout_period: null,
       payout_day: null,
     });
+  });
+
+  it("a base do valor (com ou sem taxa) vai só no desconto", () => {
+    expect(paraRequest(valido({ baseDoValor: "WITHOUT_FEE" })).benefit_base).toBe("WITHOUT_FEE");
+    expect(paraRequest(valido({ beneficio: "taxa-zero", baseDoValor: "WITHOUT_FEE" })).benefit_base).toBeNull();
+    expect(paraRequest(link()).benefit_base).toBeNull();
   });
 
   it("cupom em %, privado, com limite e público", () => {
@@ -204,7 +212,31 @@ describe("paraRequest", () => {
   });
 });
 
+describe("teto de gasto (max_total_cost)", () => {
+  it("vazio não manda teto; preenchido vai em reais", () => {
+    expect(paraRequest(valido()).max_total_cost).toBeNull();
+    expect(paraRequest(valido({ teto: "1.250,50" })).max_total_cost).toBe(1250.5);
+    expect(paraRequest(link({ teto: "300,00" })).max_total_cost).toBe(300);
+  });
+
+  it("valida: vazio vale; zero e valor enorme não", () => {
+    expect(validar(valido({ teto: "" })).teto).toBeUndefined();
+    expect(validar(valido({ teto: "0,01" })).teto).toBeUndefined();
+    expect(validar(valido({ teto: "0,00" })).teto).toBeDefined();
+    expect(validar(valido({ teto: "100.000.000,00" })).teto).toBeDefined();
+  });
+
+  it("volta da campanha para o campo", () => {
+    expect(formularioDe(campanha({ max_total_cost: 1250.5 })).teto).toBe("1.250,50");
+    expect(formularioDe(campanha()).teto).toBe("");
+  });
+});
+
 describe("formularioDe", () => {
+  it("a base do valor volta da campanha", () => {
+    expect(formularioDe(campanha({ benefit_base: "WITHOUT_FEE" })).baseDoValor).toBe("WITHOUT_FEE");
+  });
+
   it("volta da campanha para o formulário", () => {
     expect(formularioDe(campanha({ weekdays: "MONDAY,TUESDAY", max_redemptions: 50, code: "X", description: "d", audience: "OWNER" }))).toEqual({
       modo: "cupom",
@@ -214,11 +246,13 @@ describe("formularioDe", () => {
       codigo: "X",
       publico: "OWNER",
       beneficio: "reais",
+      baseDoValor: "WITH_FEE",
       valor: "10,00",
       inicio: "16/10/2026",
       fim: "31/10/2026",
       dias: ["MONDAY", "TUESDAY"],
       limite: "50",
+      teto: "",
       soClientesNovos: false,
       pctProfissional: "",
       pctDono: "",
