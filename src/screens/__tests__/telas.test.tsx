@@ -276,6 +276,8 @@ describe("Campanhas", () => {
     fireEvent.changeText(screen.getByTestId("nome"), "Nova");
     fireEvent.changeText(screen.getByTestId("valor"), "1000");
     fireEvent.changeText(screen.getByTestId("limite"), "20");
+    expect(screen.queryByTestId("sim-cortes")).toBeNull();
+    fireEvent.press(screen.getByTestId("sim-alternar"));
     fireEvent.changeText(screen.getByTestId("sim-cortes"), "2");
     expect(screen.getByTestId("sim-nova")).toHaveTextContent(/Nova · 20 pessoas · 40 cortes/);
     expect(screen.getByTestId("sim-nova")).toHaveTextContent(/R\$ 400,00/);
