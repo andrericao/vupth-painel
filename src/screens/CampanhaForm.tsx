@@ -98,24 +98,28 @@ export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCanc
           onChange={muda("descricao")}
           erro={erros.descricao}
         />
-        <Text className="text-sm font-medium text-vupth-textPrimary">Visibilidade</Text>
-        <Pilulas<CampaignVisibility>
-          testID="visibilidade"
-          valor={f.visibilidade}
-          onChange={muda("visibilidade")}
-          opcoes={[
-            { valor: "PUBLIC", rotulo: "Pública" },
-            { valor: "PRIVATE", rotulo: "Privada (com cupom)" },
-          ]}
-        />
-        <Campo
-          testID="codigo"
-          rotulo={f.visibilidade === "PRIVATE" ? "Código do cupom" : "Código do cupom (opcional)"}
-          valor={f.codigo}
-          onChange={muda("codigo")}
-          erro={erros.codigo}
-          placeholder="EX.: PARCEIRO10"
-        />
+        {ehLink ? null : (
+          <>
+            <Text className="text-sm font-medium text-vupth-textPrimary">Visibilidade</Text>
+            <Pilulas<CampaignVisibility>
+              testID="visibilidade"
+              valor={f.visibilidade}
+              onChange={muda("visibilidade")}
+              opcoes={[
+                { valor: "PUBLIC", rotulo: "Pública" },
+                { valor: "PRIVATE", rotulo: "Privada (com cupom)" },
+              ]}
+            />
+            <Campo
+              testID="codigo"
+              rotulo={f.visibilidade === "PRIVATE" ? "Código do cupom" : "Código do cupom (opcional)"}
+              valor={f.codigo}
+              onChange={muda("codigo")}
+              erro={erros.codigo}
+              placeholder="EX.: PARCEIRO10"
+            />
+          </>
+        )}
         <Text className="text-sm font-medium text-vupth-textPrimary">Quem pode aceitar</Text>
         <Pilulas<CampaignAudience | "TODOS">
           testID="publico"

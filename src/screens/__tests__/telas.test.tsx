@@ -432,6 +432,8 @@ describe("Campanhas", () => {
     expect(screen.queryByTestId("base")).toBeNull();
     fireEvent.press(screen.getByTestId("modo-link"));
     expect(screen.queryByTestId("base")).toBeNull();
+    expect(screen.queryByTestId("visibilidade")).toBeNull();
+    expect(screen.queryByTestId("codigo")).toBeNull();
   });
 
   it("se a lista ainda não veio, criar funciona igual", async () => {

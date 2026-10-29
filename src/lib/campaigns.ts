@@ -199,8 +199,8 @@ export function validar(f: Formulario): Partial<Record<keyof Formulario, string>
   if (!f.nome.trim()) erros.nome = "Dê um nome à campanha.";
   else if (f.nome.trim().length > 80) erros.nome = "Até 80 letras.";
   if (f.descricao.length > 300) erros.descricao = "Até 300 letras.";
-  const codigo = f.codigo.trim();
-  if (f.visibilidade === "PRIVATE" && !codigo) erros.codigo = "A campanha privada precisa de cupom.";
+  const codigo = f.modo === "link" ? "" : f.codigo.trim();
+  if (f.modo !== "link" && f.visibilidade === "PRIVATE" && !codigo) erros.codigo = "A campanha privada precisa de cupom.";
   else if (codigo && !/^[A-Za-z0-9_-]{1,40}$/.test(codigo)) erros.codigo = "Só letras, números, - e _ (até 40).";
   if (f.modo === "link" || f.beneficio !== "taxa-zero") {
     const v = numero(f.valor);
@@ -250,9 +250,9 @@ export function paraRequest(f: Formulario): CampaignRequest {
   return {
     name: f.nome.trim(),
     description: f.descricao.trim() || null,
-    code: f.codigo.trim() || null,
+    code: f.modo === "link" ? null : f.codigo.trim() || null,
     type: tipo,
-    visibility: f.visibilidade,
+    visibility: f.modo === "link" ? "PUBLIC" : f.visibilidade,
     audience: f.publico === "TODOS" ? null : f.publico,
     value_amount: emPorcento ? null : valor,
     value_percent: emPorcento ? valor : null,

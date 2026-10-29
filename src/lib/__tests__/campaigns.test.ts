@@ -126,6 +126,12 @@ describe("bonificação (DEC-73)", () => {
     expect(validar(link({ pagamento: "MONTHLY", diaPagamento: "0" })).diaPagamento).toBeDefined();
   });
 
+  it("no link, visibilidade e código do cupom não valem nem vão ao Backend", () => {
+    expect(validar(link({ visibilidade: "PRIVATE", codigo: "" })).codigo).toBeUndefined();
+    expect(validar(link({ codigo: "com espaço" })).codigo).toBeUndefined();
+    expect(paraRequest(link({ visibilidade: "PRIVATE", codigo: "ABC" }))).toMatchObject({ visibility: "PUBLIC", code: null });
+  });
+
   it("paraRequest manda os 5 campos só na indicação", () => {
     expect(paraRequest(link())).toMatchObject({
       type: "REFERRAL_BONUS",
