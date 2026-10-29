@@ -201,6 +201,7 @@ describe("Shell", () => {
       </Shell>,
     );
     expect(screen.queryByText("André")).toBeNull();
+    expect(screen.getByTestId("barra-de-baixo")).toBeTruthy();
     fireEvent.press(screen.getByTestId("menu-/alertas"));
     expect(onIr).toHaveBeenCalledWith("/alertas");
     fireEvent.press(screen.getByTestId("sair"));

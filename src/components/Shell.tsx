@@ -118,10 +118,10 @@ export function Shell({ atual, nome, permissoes, onIr, onSair, children }: Props
             <LogOut color={cor.textPrimary} size={20} />
           </Pressable>
         </View>
-        <ScrollView className="flex-1" contentContainerClassName="gap-4 p-4">
+        <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-4 p-4">
           {children}
         </ScrollView>
-        <ScrollView horizontal className="max-h-16 grow-0 bg-vupth-surface" contentContainerClassName="px-2">
+        <ScrollView testID="barra-de-baixo" horizontal className="h-16 shrink-0 grow-0 bg-vupth-surface" contentContainerClassName="px-2">
           {menu.map((m) => (
             <ItemBarra key={m.rota} item={m} marcado={ativo(m.rota, atual)} onPress={() => onIr(m.rota)} />
           ))}
@@ -237,7 +237,7 @@ function ItemBarra({ item, marcado, onPress }: { item: ItemMenu; marcado: boolea
       accessibilityRole="link"
       accessibilityState={{ selected: marcado }}
       onPress={onPress}
-      className="w-20 items-center justify-center gap-1 py-2"
+      className="w-20 shrink-0 items-center justify-center gap-1 py-2"
     >
       <item.Icone color={marcado ? cor.onGreenTint : cor.textPrimary} size={20} />
       <Text className={`text-[10px] ${marcado ? "font-heading text-vupth-textPrimary" : "text-vupth-textSecondary"}`}>
