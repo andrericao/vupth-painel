@@ -5,6 +5,7 @@ import { Aviso, Botao, Campo, Cartao, Pilulas } from "../components/ui";
 import type { ItemSimulado } from "../lib/simulacao";
 import { Simulacao } from "./Simulacao";
 import { ApiError } from "../lib/api";
+import { irAoCampo, primeiroCampoComErro } from "../lib/irAoCampo";
 import { mascaraData, mascaraPercentual, mascaraValor, somenteNumeros } from "../lib/mascaras";
 import {
   avisoBeneficio,
@@ -47,7 +48,10 @@ export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCanc
   async function salvar() {
     const e = validar(f);
     setErros(e);
-    if (Object.keys(e).length) return;
+    if (Object.keys(e).length) {
+      irAoCampo(primeiroCampoComErro(e));
+      return;
+    }
     setErroGeral(null);
     setEnviando(true);
     try {
