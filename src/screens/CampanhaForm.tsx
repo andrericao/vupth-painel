@@ -158,6 +158,7 @@ export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCanc
             onChange={(v) => muda("valor")(ehPercentual ? mascaraPercentual(v) : mascaraValor(v))}
             erro={erros.valor}
             placeholder={ehPercentual ? "0" : "0,00"}
+            sufixo={ehPercentual ? "%" : undefined}
           />
         ) : null}
         {ehLink || f.beneficio === "taxa-zero" ? null : (
@@ -235,6 +236,7 @@ function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: Retur
             valor={f.pctProfissional}
             onChange={(v) => muda("pctProfissional")(mascaraPercentual(v))}
             erro={erros.pctProfissional}
+            sufixo="%"
           />
         </View>
         <View className="min-w-[180px] flex-1">
@@ -244,6 +246,7 @@ function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: Retur
             valor={f.pctDono}
             onChange={(v) => muda("pctDono")(mascaraPercentual(v))}
             erro={erros.pctDono}
+            sufixo="%"
             dica="Os dois somam 100%."
           />
         </View>

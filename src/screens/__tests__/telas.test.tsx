@@ -539,11 +539,14 @@ describe("CampanhaForm", () => {
     fireEvent.press(screen.getByTestId("beneficio-porcento"));
     fireEvent.changeText(screen.getByTestId("valor"), "150,567");
     expect(screen.getByTestId("valor").props.value).toBe("100");
+    expect(screen.getByTestId("valor-sufixo").props.children).toBe("%");
     fireEvent.changeText(screen.getByTestId("limite"), "12a3");
     expect(screen.getByTestId("limite").props.value).toBe("123");
     fireEvent.press(screen.getByTestId("modo-link"));
     fireEvent.changeText(screen.getByTestId("pct-profissional"), "7x0,555");
     expect(screen.getByTestId("pct-profissional").props.value).toBe("70,55");
+    expect(screen.getByTestId("pct-profissional-sufixo")).toBeTruthy();
+    expect(screen.getByTestId("pct-dono-sufixo")).toBeTruthy();
     fireEvent.press(screen.getByTestId("pagamento-MONTHLY"));
     fireEvent.changeText(screen.getByTestId("dia-mes"), "2a8z9");
     expect(screen.getByTestId("dia-mes").props.value).toBe("28");

@@ -57,6 +57,8 @@ type CampoProps = {
   desabilitado?: boolean;
   /** Enter no campo (teclado ou web) manda o formulário. */
   onEnviar?: () => void;
+  /** Sinal fixo à direita do campo, como o % das porcentagens. */
+  sufixo?: string;
   testID?: string;
 };
 
@@ -71,6 +73,7 @@ export function Campo({
   maxLength,
   desabilitado,
   onEnviar,
+  sufixo,
   testID,
 }: CampoProps) {
   const cor = useCor();
@@ -92,10 +95,15 @@ export function Campo({
           secureTextEntry={oculta}
           maxLength={maxLength}
           editable={!desabilitado}
-          className={`h-11 rounded-xl border px-3 text-vupth-textPrimary ${senha ? "pr-12" : ""} ${
+          className={`h-11 rounded-xl border px-3 text-vupth-textPrimary ${senha || sufixo ? "pr-12" : ""} ${
             erro ? "border-vupth-danger" : "border-vupth-border"
           } ${desabilitado ? "bg-vupth-surface" : "bg-vupth-background"}`}
         />
+        {sufixo ? (
+          <Text testID={testID ? `${testID}-sufixo` : undefined} className="absolute right-3 text-vupth-textSecondary">
+            {sufixo}
+          </Text>
+        ) : null}
         {senha ? (
           <Pressable
             testID={testID ? `${testID}-ver` : undefined}
