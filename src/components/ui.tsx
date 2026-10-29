@@ -57,6 +57,8 @@ type CampoProps = {
   desabilitado?: boolean;
   /** Enter no campo (teclado ou web) manda o formulário. */
   onEnviar?: () => void;
+  /** Algo ao lado do rótulo, como o ícone "i" da explicação (Dica). */
+  info?: ReactNode;
   /** Sinal fixo à direita do campo, como o % das porcentagens. */
   sufixo?: string;
   testID?: string;
@@ -74,6 +76,7 @@ export function Campo({
   desabilitado,
   onEnviar,
   sufixo,
+  info,
   testID,
 }: CampoProps) {
   const cor = useCor();
@@ -81,7 +84,14 @@ export function Campo({
   const oculta = !!senha && !visivel;
   return (
     <View className="gap-1">
-      <Text className="text-sm font-medium text-vupth-textPrimary">{rotulo}</Text>
+      {info ? (
+        <View className="flex-row items-center gap-1">
+          <Text className="text-sm font-medium text-vupth-textPrimary">{rotulo}</Text>
+          {info}
+        </View>
+      ) : (
+        <Text className="text-sm font-medium text-vupth-textPrimary">{rotulo}</Text>
+      )}
       <View className="justify-center">
         <TextInput
           testID={testID}

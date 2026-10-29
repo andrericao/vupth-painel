@@ -421,7 +421,8 @@ describe("Campanhas", () => {
     m.criarCampanha.mockResolvedValue(campanha({ id: "n1", name: "Nova" }));
     render(<Campanhas hoje="2026-10-16" />);
     fireEvent.press(await screen.findByTestId("criar"));
-    expect(screen.getByTestId("dica-base")).toHaveTextContent(/cupons não se acumulam/);
+    fireEvent.press(screen.getByTestId("info-Valor com taxa ou sem taxa"));
+    expect(screen.getByTestId("dica-Valor com taxa ou sem taxa")).toHaveTextContent(/cupons não se acumulam/);
     fireEvent.press(screen.getByTestId("base-WITHOUT_FEE"));
     fireEvent.changeText(screen.getByTestId("nome"), "Nova");
     fireEvent.changeText(screen.getByTestId("valor"), "5");

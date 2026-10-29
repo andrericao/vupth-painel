@@ -107,7 +107,7 @@ export function Simulacao({ f, editandoId, existentes }: Props) {
                 valor={pessoas}
                 onChange={(v) => setPessoas(somenteNumeros(v, 7))}
                 placeholder={f.limite || "0"}
-                dica="Vazio = o limite desta campanha. Vale para as campanhas sem limite."
+                info={<Dica rotulo="Pessoas" texto="Vazio = o limite desta campanha. Vale para as campanhas sem limite." />}
               />
             </View>
           </View>

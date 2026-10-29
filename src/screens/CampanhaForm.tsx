@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 
+import { Dica } from "../components/leitura";
 import { Aviso, Botao, Campo, Cartao, Pilulas } from "../components/ui";
 import type { ItemSimulado } from "../lib/simulacao";
 import { Simulacao } from "./Simulacao";
@@ -33,6 +34,9 @@ import {
   type PayoutPeriod,
   type ReferralScope,
 } from "../lib/campaigns";
+
+const DICA_BONIFICACAO =
+  "Quanto cada corte concluído de quem veio pelo link vira prêmio. A porcentagem divide o prêmio entre o profissional e o dono; as duas somam 100%.";
 
 type Props = { campanha?: Campaign; existentes?: ItemSimulado[]; hoje: string; onPronto: (c: Campaign) => void; onCancelar: () => void };
 
@@ -173,9 +177,10 @@ export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCanc
               onChange={muda("baseDoValor")}
               opcoes={(Object.keys(NOME_BASE) as BaseDoValor[]).map((b) => ({ valor: b, rotulo: NOME_BASE[b] }))}
             />
-            <Text testID="dica-base" className="text-sm text-vupth-textSecondary">
-              {DICA_BASE}
-            </Text>
+            <View className="flex-row items-center gap-1">
+              <Text className="text-sm text-vupth-textSecondary">Valor com taxa ou sem taxa</Text>
+              <Dica rotulo="Valor com taxa ou sem taxa" texto={DICA_BASE} />
+            </View>
           </>
         )}
         {ehLink ? <ParametrosBonificacao f={f} erros={erros} muda={muda} /> : null}
@@ -210,7 +215,7 @@ export function CampanhaForm({ campanha, existentes = [], hoje, onPronto, onCanc
           valor={f.teto}
           onChange={(v) => muda("teto")(mascaraValor(v))}
           erro={erros.teto}
-          dica={DICA_TETO}
+          info={<Dica rotulo="Teto de gasto" texto={DICA_TETO} />}
         />
       </Cartao>
 
@@ -231,7 +236,10 @@ type Muda = <K extends keyof Formulario>(k: K) => (v: Formulario[K]) => void;
 function ParametrosBonificacao({ f, erros, muda }: { f: Formulario; erros: ReturnType<typeof validar>; muda: Muda }) {
   return (
     <View testID="parametros-bonificacao" className="gap-3 rounded-xl border border-dashed border-vupth-border p-4">
-      <Text className="text-sm font-heading text-vupth-textPrimary">Bonificação</Text>
+      <View className="flex-row items-center gap-1">
+        <Text className="text-sm font-heading text-vupth-textPrimary">Bonificação</Text>
+        <Dica rotulo="Bonificação" texto={DICA_BONIFICACAO} />
+      </View>
       <View className="flex-row flex-wrap gap-4">
         <View className="min-w-[180px] flex-1">
           <Campo
