@@ -297,6 +297,7 @@ describe("Campanhas", () => {
     m.listarCampanhas.mockResolvedValue([campanha({ max_redemptions: 5 })]);
     render(<Campanhas hoje="2026-10-16" />);
     fireEvent.press(await screen.findByTestId("editar-c1"));
+    fireEvent.press(screen.getByTestId("sim-alternar"));
     expect(screen.queryByTestId("sim-ativa-0")).toBeNull();
     expect(screen.getByTestId("sim-total")).toHaveTextContent(/Total \(1 campanha\)/);
   });
@@ -484,11 +485,9 @@ describe("CampanhaForm", () => {
     expect(screen.getByTestId("parametros-bonificacao")).toBeTruthy();
     expect(screen.queryByTestId("beneficio")).toBeNull();
     expect(screen.getByText("Valor por corte (R$)")).toBeTruthy();
-    fireEvent.press(screen.getByTestId("visibilidade-PRIVATE"));
-    expect(screen.getByText("Código do cupom")).toBeTruthy();
+    expect(screen.queryByText("Código do cupom")).toBeNull();
     fireEvent.changeText(screen.getByTestId("nome"), "Indique");
     fireEvent.changeText(screen.getByTestId("descricao"), "d");
-    fireEvent.changeText(screen.getByTestId("codigo"), "INDIQUE");
     fireEvent.changeText(screen.getByTestId("valor"), "300");
     fireEvent.changeText(screen.getByTestId("inicio"), "17102026");
     fireEvent.changeText(screen.getByTestId("fim"), "31102026");
@@ -517,8 +516,8 @@ describe("CampanhaForm", () => {
     expect(m.criarCampanha).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "REFERRAL_BONUS",
-        visibility: "PRIVATE",
-        code: "INDIQUE",
+        visibility: "PUBLIC",
+        code: null,
         audience: "PROFESSIONAL",
         value_amount: 3,
         max_redemptions: 50,
