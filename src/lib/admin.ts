@@ -232,6 +232,7 @@ export const PERMISSAO_DA_ROTA: Record<string, string> = {
   "/dinheiro": "FINANCE",
   "/dividas": "FINANCE",
   "/premios": "FINANCE",
+  "/contas": "FINANCE",
   "/saldo": "FINANCE",
   "/asaas": "FINANCE",
   "/multas": "FINANCE",
