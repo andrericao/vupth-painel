@@ -204,6 +204,19 @@ export const quitarDivida = (professionalId: string) =>
 export const listarPremiosPendentes = () => api<PremioPendente[]>("/admin/referrals/pending-release");
 export const liberarPremio = (campaign_id: string, beneficiary_id?: string) =>
   api<{ released_credits: number; released_at: string }>("/admin/referrals/release", { method: "POST", body: { campaign_id, beneficiary_id } });
+/** GET /admin/penalty-payments (FINANCE): multas pagas avulso por Pix do app, aguardando a confirmação. */
+export type PagamentoDeMulta = {
+  id: string;
+  amount: number;
+  status: "PENDING" | "PAID" | "EXPIRED";
+  client_id: string;
+  client_name?: string;
+  created_at: string;
+  expires_at: string;
+};
+export const listarPagamentosDeMulta = () => api<PagamentoDeMulta[]>("/admin/penalty-payments");
+export const confirmarPagamentoDeMulta = (id: string) =>
+  api<PagamentoDeMulta>(`/admin/penalty-payments/${id}/paid`, { method: "POST" });
 export const lerSaldoDoApp = () => api<SaldoDoApp>("/admin/finance/app-balance");
 export const lerConexaoAsaas = () => api<ConexaoAsaas>("/admin/settings/asaas-connection");
 export const lerRelatorioAsaas = () => api<RelatorioAsaas>("/admin/finance/asaas/sandbox/report");
@@ -236,6 +249,7 @@ export const PERMISSAO_DA_ROTA: Record<string, string> = {
   "/saldo": "FINANCE",
   "/asaas": "FINANCE",
   "/multas": "FINANCE",
+  "/multas-a-confirmar": "FINANCE",
   "/suporte": "SUPPORT",
   "/alertas": "ALERTS",
   "/auditoria": "AUDIT",
